@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(command -v brew)",
+      "Read(//Users/lilliangardnercox/**)",
+      "Bash(npx skills@latest *)",
+      "Bash(pkill -f \"skills@latest\")",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias '@/*' --use-npm --yes)"
+    ]
+  }
+}
