@@ -31,59 +31,62 @@ export async function POST(
   if (!trip) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
-  if (!trip.guest_id) {
-    return NextResponse.json(
-      { error: "Trip needs both travelers before computing matches." },
-      { status: 400 },
-    );
-  }
 
-  // Shared interests = intersection of both users' interest sets.
+  // Union of interests across whoever is on the trip. Each tag gets weight 2
+  // if both travelers picked it, 1 if only one. Solo trips collapse to weight 1
+  // for everything the creator picked.
   const [creatorRes, guestRes] = await Promise.all([
     supabase
       .from("profile_interests")
       .select("interest_id")
       .eq("profile_id", trip.creator_id),
-    supabase
-      .from("profile_interests")
-      .select("interest_id")
-      .eq("profile_id", trip.guest_id),
+    trip.guest_id
+      ? supabase
+          .from("profile_interests")
+          .select("interest_id")
+          .eq("profile_id", trip.guest_id)
+      : Promise.resolve({ data: [] as { interest_id: string }[] }),
   ]);
 
   const creatorIds = new Set(
     (creatorRes.data ?? []).map((r) => r.interest_id),
   );
-  const sharedIds = (guestRes.data ?? [])
-    .map((r) => r.interest_id)
-    .filter((id) => creatorIds.has(id));
+  const guestIds = new Set((guestRes.data ?? []).map((r) => r.interest_id));
+  const allIds = new Set([...creatorIds, ...guestIds]);
 
-  if (sharedIds.length === 0) {
+  if (allIds.size === 0) {
     const admin = createAdminClient();
     await admin.from("trip_matches").delete().eq("trip_id", tripId);
     await admin
       .from("trips")
-      .update({ matches_computed_at: new Date().toISOString() })
+      .update({
+        matches_computed_at: new Date().toISOString(),
+        matches_combined: !!trip.guest_id,
+      })
       .eq("id", tripId);
     return NextResponse.json({
       ok: true,
       count: 0,
-      reason:
-        "No shared interests yet — both travelers need overlapping picks on /profile.",
+      reason: "Pick some interests on /profile before searching for stops.",
     });
   }
 
   const { data: interests } = await supabase
     .from("interests")
-    .select("slug, search_keywords")
-    .in("id", sharedIds);
+    .select("id, slug, search_keywords")
+    .in("id", [...allIds]);
+
+  const weighted = (interests ?? []).map((i) => ({
+    slug: i.slug,
+    search_keywords: i.search_keywords,
+    weight:
+      (creatorIds.has(i.id) ? 1 : 0) + (guestIds.has(i.id) ? 1 : 0),
+  }));
 
   const { matches, encodedPolyline } = await findMatches(
     { lat: trip.origin_lat, lng: trip.origin_lng },
     { lat: trip.dest_lat, lng: trip.dest_lng },
-    (interests ?? []).map((i) => ({
-      slug: i.slug,
-      search_keywords: i.search_keywords,
-    })),
+    weighted,
   );
 
   const admin = createAdminClient();
@@ -117,6 +120,7 @@ export async function POST(
     .from("trips")
     .update({
       matches_computed_at: new Date().toISOString(),
+      matches_combined: !!trip.guest_id,
       route_polyline: encodedPolyline,
     })
     .eq("id", tripId);

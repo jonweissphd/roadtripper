@@ -25,6 +25,8 @@ const MAX_DISPLAY = 30;
 export type SharedInterest = {
   slug: string;
   search_keywords: string[];
+  // 2 if both travelers picked this tag, 1 if only one (or solo). Drives ranking.
+  weight: number;
 };
 
 export type MatchResult = {
@@ -57,6 +59,10 @@ export async function findMatches(
   if (sharedInterests.length === 0) {
     return { matches: [], encodedPolyline: null };
   }
+
+  const weightBySlug = new Map(
+    sharedInterests.map((i) => [i.slug, i.weight]),
+  );
 
   // 1. Route + decode polyline.
   const route = await fetchRoute(origin, destination);
@@ -184,9 +190,17 @@ export async function findMatches(
   const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
 
   // 8. Assemble + final sort.
+  // shared_tags_count is repurposed as the weighted match score: each matched
+  // tag contributes its weight (1 for one user, 2 for both). Solo trips
+  // collapse to "count of my matched tags". Paired trips elevate places that
+  // hit tags both travelers picked.
   const results: MatchResult[] = candidates.map((c, i) => {
     const matchedSlugs = [...(placeMatches.get(c.id) ?? [])];
     const rerank = rerankById.get(c.id);
+    const matchScore = matchedSlugs.reduce(
+      (sum, slug) => sum + (weightBySlug.get(slug) ?? 0),
+      0,
+    );
     return {
       place_id: c.id,
       name: c.name,
@@ -197,7 +211,7 @@ export async function findMatches(
       review_count: c.review_count,
       primary_photo_id: c.primary_photo_id,
       matched_interests: matchedSlugs,
-      shared_tags_count: matchedSlugs.length,
+      shared_tags_count: matchScore,
       detour_seconds: detours[i],
       editorial_score: rerank?.score,
       editorial_reasoning: rerank?.reasoning,

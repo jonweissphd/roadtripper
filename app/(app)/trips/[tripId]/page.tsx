@@ -31,7 +31,7 @@ export default async function TripDetailPage({
   const { data: trip } = await supabase
     .from("trips")
     .select(
-      "id, creator_id, guest_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng, status, invite_token, matches_computed_at, route_polyline",
+      "id, creator_id, guest_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng, status, invite_token, matches_computed_at, matches_combined, route_polyline",
     )
     .eq("id", tripId)
     .maybeSingle();
@@ -125,23 +125,8 @@ export default async function TripDetailPage({
         </h1>
       </header>
 
-      {!trip.guest_id ? (
-        <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
-          <div className="space-y-1.5">
-            <h2 className="text-base font-semibold tracking-tight">
-              Invite your travel buddy
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Share this link. They&apos;ll be added to the trip when they
-              accept.
-            </p>
-          </div>
-          <div className="pt-4">
-            <CopyInviteLink url={inviteUrl} />
-          </div>
-        </section>
-      ) : (
-        <div className="space-y-10">
+      <div className="space-y-10">
+        {trip.guest_id && (
           <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
               <span className="text-base">
@@ -187,52 +172,87 @@ export default async function TripDetailPage({
               </div>
             </div>
           </section>
+        )}
 
-          <section className="space-y-6">
-            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-              <div className="space-y-1">
-                <Eyebrow>Stops along your route</Eyebrow>
-                <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
-                  {trip.matches_computed_at
+        <section className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+            <div className="space-y-1">
+              <Eyebrow>Stops along your route</Eyebrow>
+              <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
+                {trip.matches_computed_at
+                  ? trip.guest_id
                     ? "Matches"
-                    : "Find places you’ll both love"}
-                </h2>
-                {trip.matches_computed_at && (
-                  <p className="text-xs text-muted-foreground">
-                    Last updated {timeAgo(trip.matches_computed_at)}
-                  </p>
-                )}
-              </div>
-              <FindMatchesButton
-                tripId={tripId}
-                label={trip.matches_computed_at ? "Refresh" : "Find our matches"}
-              />
-            </div>
-
-            {trip.matches_computed_at ? (
-              <TripContent
-                tripId={tripId}
-                origin={{ lat: trip.origin_lat, lng: trip.origin_lng }}
-                destination={{ lat: trip.dest_lat, lng: trip.dest_lng }}
-                encodedPolyline={trip.route_polyline}
-                matches={matches}
-                interestLabels={interestLabels}
-              />
-            ) : (
-              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-5 py-10 text-center">
-                <p className="mx-auto max-w-[36ch] text-sm text-muted-foreground">
-                  Tap{" "}
-                  <span className="font-medium text-foreground">
-                    Find our matches
-                  </span>{" "}
-                  and we&apos;ll scan a corridor along your route, then rank
-                  the best stops for the two of you.
+                    : "Your stops"
+                  : trip.guest_id
+                    ? "Find places you'll both love"
+                    : "Find your stops"}
+              </h2>
+              {trip.matches_computed_at && (
+                <p className="text-xs text-muted-foreground">
+                  Last updated {timeAgo(trip.matches_computed_at)}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
+            <FindMatchesButton
+              tripId={tripId}
+              label={
+                trip.matches_computed_at
+                  ? trip.guest_id && !trip.matches_combined
+                    ? "Refresh combined"
+                    : "Refresh"
+                  : "Find matches"
+              }
+            />
+          </div>
+
+          {trip.guest_id && trip.matches_computed_at && !trip.matches_combined && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
+              These matches are still based on your interests alone. Refresh to
+              combine with {partnerName ?? "your buddy"}&apos;s picks.
+            </div>
+          )}
+
+          {trip.matches_computed_at ? (
+            <TripContent
+              tripId={tripId}
+              origin={{ lat: trip.origin_lat, lng: trip.origin_lng }}
+              destination={{ lat: trip.dest_lat, lng: trip.dest_lng }}
+              encodedPolyline={trip.route_polyline}
+              matches={matches}
+              interestLabels={interestLabels}
+            />
+          ) : (
+            <div className="rounded-xl border border-dashed border-border bg-muted/30 px-5 py-10 text-center">
+              <p className="mx-auto max-w-[36ch] text-sm text-muted-foreground">
+                Tap{" "}
+                <span className="font-medium text-foreground">
+                  Find matches
+                </span>{" "}
+                and we&apos;ll scan a corridor along your route, then rank the
+                best stops{trip.guest_id ? " for the two of you" : ""}.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {!trip.guest_id && (
+          <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
+            <div className="space-y-1.5">
+              <h2 className="text-base font-semibold tracking-tight">
+                Going with someone?
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Share this link. When they join, we&apos;ll combine your
+                interests so the next refresh ranks places you&apos;ll both
+                love.
+              </p>
+            </div>
+            <div className="pt-4">
+              <CopyInviteLink url={inviteUrl} />
+            </div>
           </section>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }

@@ -8,13 +8,15 @@ import { createClient } from "@/lib/supabase/server";
 const MIN_INTERESTS = 5;
 
 export async function createTrip(formData: FormData) {
+  // parseFloat returns NaN for empty strings (Number("") is 0, which would
+  // silently create a trip at lat=0,lng=0 in the Atlantic).
   const origin_address = String(formData.get("origin_address") ?? "").trim();
-  const origin_lat = Number(formData.get("origin_lat"));
-  const origin_lng = Number(formData.get("origin_lng"));
+  const origin_lat = parseFloat(String(formData.get("origin_lat") ?? ""));
+  const origin_lng = parseFloat(String(formData.get("origin_lng") ?? ""));
   const origin_place_id = String(formData.get("origin_place_id") ?? "");
   const dest_address = String(formData.get("dest_address") ?? "").trim();
-  const dest_lat = Number(formData.get("dest_lat"));
-  const dest_lng = Number(formData.get("dest_lng"));
+  const dest_lat = parseFloat(String(formData.get("dest_lat") ?? ""));
+  const dest_lng = parseFloat(String(formData.get("dest_lng") ?? ""));
   const dest_place_id = String(formData.get("dest_place_id") ?? "");
 
   if (

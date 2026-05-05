@@ -45,3 +45,6 @@ next-env.d.ts
 # editor backups / generated dumps
 *.save
 db/_bundle.sql
+
+# Claude Code agent worktrees (created by isolated-mode subagents)
+.claude/worktrees/
