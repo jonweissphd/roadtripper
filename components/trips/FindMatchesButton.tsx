@@ -40,15 +40,29 @@ export function FindMatchesButton({
   return (
     <div className="space-y-2">
       <Button type="button" onClick={run} disabled={isLoading}>
-        {isLoading ? "Finding matches…" : label}
+        {isLoading ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="relative inline-flex size-2">
+              <span className="absolute inset-0 animate-ping rounded-full bg-current opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-current" />
+            </span>
+            Scanning route…
+          </span>
+        ) : (
+          label
+        )}
       </Button>
       {isLoading && (
         <p className="text-xs text-muted-foreground">
-          This takes 5–15 seconds — we&apos;re scanning the route, finding
-          places, and ranking them.
+          Takes 5–15 seconds. We&apos;re scanning the corridor, finding places,
+          and ranking them.
         </p>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="rounded-md bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

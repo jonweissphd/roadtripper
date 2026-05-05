@@ -4,36 +4,48 @@ import { useEffect, useRef, useState } from "react";
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
 
-let mapsPromise: Promise<void> | null = null;
+let bootstrapped = false;
 
-function loadGoogleMaps(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps?.places) return Promise.resolve();
-  if (mapsPromise) return mapsPromise;
-
-  mapsPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.getElementById(
-      "gmaps-loader",
-    ) as HTMLScriptElement | null;
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () =>
-        reject(new Error("Failed to load Google Maps")),
-      );
-      return;
-    }
-    const script = document.createElement("script");
-    script.id = "gmaps-loader";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&v=weekly&loading=async`;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => {
-      mapsPromise = null;
-      reject(new Error("Failed to load Google Maps"));
+// Google's official async bootstrap loader. Sets up google.maps.importLibrary
+// before any maps script is fetched, so dynamic library loading works.
+// https://developers.google.com/maps/documentation/javascript/load-maps-js-api
+function bootstrapGoogleMaps() {
+  if (bootstrapped) return;
+  bootstrapped = true;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ((g: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const goog = (w.google = w.google || {});
+    const maps = (goog.maps = goog.maps || {});
+    const libs = new Set<string>();
+    const params = new URLSearchParams();
+    let loaderPromise: Promise<void> | null = null;
+    const start = () =>
+      loaderPromise ||
+      (loaderPromise = new Promise<void>((resolve, reject) => {
+        const s = document.createElement("script");
+        params.set("libraries", [...libs].join(","));
+        for (const k in g) {
+          params.set(
+            k.replace(/[A-Z]/g, (t) => "_" + t[0].toLowerCase()),
+            g[k],
+          );
+        }
+        params.set("callback", "google.maps.__ib__");
+        s.src = `https://maps.googleapis.com/maps/api/js?${params}`;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (maps as any).__ib__ = resolve;
+        s.onerror = () =>
+          reject(new Error("Google Maps JavaScript API could not load."));
+        document.head.appendChild(s);
+      }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    maps.importLibrary = (name: string, ...rest: any[]) => {
+      libs.add(name);
+      return start().then(() => maps.importLibrary(name, ...rest));
     };
-    document.head.appendChild(script);
-  });
-  return mapsPromise;
+  })({ key: MAPS_KEY, v: "weekly" });
 }
 
 export type AddressSelection = {
@@ -71,10 +83,10 @@ export function AddressAutocomplete({
     let canceled = false;
     let element: google.maps.places.PlaceAutocompleteElement | null = null;
 
-    loadGoogleMaps()
-      .then(async () => {
-        if (canceled) return;
-        await google.maps.importLibrary("places");
+    bootstrapGoogleMaps();
+    google.maps
+      .importLibrary("places")
+      .then(() => {
         if (canceled) return;
 
         element = new google.maps.places.PlaceAutocompleteElement({});
@@ -112,7 +124,7 @@ export function AddressAutocomplete({
   }, []);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <label className="text-sm font-medium leading-none">{label}</label>
       <div ref={containerRef} className="w-full" />
       {selection?.address && (

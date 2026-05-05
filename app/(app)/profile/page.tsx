@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -62,24 +63,24 @@ export default async function ProfilePage({
   const canStartTrip = selectedIds.length >= MIN_INTERESTS_FOR_TRIP;
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-8 px-6 py-12">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Your profile</h1>
+    <main className="mx-auto w-full max-w-2xl px-6 py-12 sm:py-14">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-8">
+        <div className="space-y-2">
+          <Eyebrow>Your profile</Eyebrow>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-[2rem]">
+            Tell us about you
+          </h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
         {canStartTrip && (
-          <Link
-            href="/trips/new"
-            className={buttonVariants({ size: "default" })}
-          >
+          <Link href="/trips/new" className={buttonVariants()}>
             New trip
           </Link>
         )}
       </div>
 
-      <form action={saveProfile} className="space-y-8">
-        <div className="space-y-2">
+      <form action={saveProfile} className="space-y-10">
+        <section className="space-y-2.5">
           <Label htmlFor="display_name">Display name</Label>
           <Input
             id="display_name"
@@ -89,19 +90,39 @@ export default async function ProfilePage({
             placeholder="What should your travel buddy call you?"
           />
           <p className="text-xs text-muted-foreground">
-            Your travel buddy will see this when you go on a trip together.
+            Your travel buddy sees this when you go on a trip together.
           </p>
-        </div>
+        </section>
 
-        <div className="space-y-3">
-          <Label>Interests</Label>
+        <section className="space-y-4">
+          <div className="space-y-1">
+            <Label className="text-base font-semibold tracking-tight">
+              Interests
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Pick the kinds of stops you enjoy. We&apos;ll match these against
+              your travel buddy&apos;s.
+            </p>
+          </div>
           <InterestPicker groups={groups} initial={selectedIds} />
+        </section>
+
+        {error && (
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        {saved && (
+          <p className="rounded-md bg-success/12 px-3 py-2 text-sm text-success">
+            Saved.
+          </p>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <Button type="submit" size="lg">
+            Save profile
+          </Button>
         </div>
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        {saved && <p className="text-sm text-emerald-700">Saved.</p>}
-
-        <Button type="submit">Save profile</Button>
       </form>
     </main>
   );

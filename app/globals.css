@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +39,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,83 +52,197 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+  Detour palette — restrained, paper-warm, single ink-green accent.
+  Hue 130 (warm-leaning green) for everything: neutrals carry chroma 0.004–0.012,
+  the primary accent carries 0.075. No pure black, no pure white.
+*/
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(0.985 0.004 130);
+  --foreground: oklch(0.18 0.015 130);
+
+  --card: oklch(1 0.002 130);
+  --card-foreground: oklch(0.18 0.015 130);
+
+  --popover: oklch(1 0.002 130);
+  --popover-foreground: oklch(0.18 0.015 130);
+
+  --primary: oklch(0.38 0.08 145);
+  --primary-foreground: oklch(0.985 0.004 130);
+
+  --secondary: oklch(0.95 0.008 130);
+  --secondary-foreground: oklch(0.25 0.015 130);
+
+  --muted: oklch(0.96 0.006 130);
+  --muted-foreground: oklch(0.48 0.013 130);
+
+  --accent: oklch(0.94 0.012 130);
+  --accent-foreground: oklch(0.25 0.015 130);
+
+  --destructive: oklch(0.52 0.18 25);
+  --success: oklch(0.55 0.09 150);
+  --success-foreground: oklch(0.985 0.004 130);
+  --warning: oklch(0.72 0.13 75);
+  --warning-foreground: oklch(0.22 0.04 75);
+
+  --border: oklch(0.9 0.008 130);
+  --input: oklch(0.9 0.008 130);
+  --ring: oklch(0.55 0.06 145);
+
+  --chart-1: oklch(0.55 0.08 145);
+  --chart-2: oklch(0.65 0.07 100);
+  --chart-3: oklch(0.62 0.1 45);
+  --chart-4: oklch(0.5 0.06 200);
+  --chart-5: oklch(0.42 0.05 290);
+
+  --radius: 0.5rem;
+
+  --sidebar: oklch(0.97 0.006 130);
+  --sidebar-foreground: oklch(0.18 0.015 130);
+  --sidebar-primary: oklch(0.38 0.08 145);
+  --sidebar-primary-foreground: oklch(0.985 0.004 130);
+  --sidebar-accent: oklch(0.94 0.012 130);
+  --sidebar-accent-foreground: oklch(0.25 0.015 130);
+  --sidebar-border: oklch(0.9 0.008 130);
+  --sidebar-ring: oklch(0.55 0.06 145);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(0.16 0.012 130);
+  --foreground: oklch(0.95 0.006 130);
+
+  --card: oklch(0.205 0.013 130);
+  --card-foreground: oklch(0.95 0.006 130);
+
+  --popover: oklch(0.205 0.013 130);
+  --popover-foreground: oklch(0.95 0.006 130);
+
+  --primary: oklch(0.78 0.085 145);
+  --primary-foreground: oklch(0.16 0.012 130);
+
+  --secondary: oklch(0.25 0.014 130);
+  --secondary-foreground: oklch(0.95 0.006 130);
+
+  --muted: oklch(0.25 0.014 130);
+  --muted-foreground: oklch(0.66 0.014 130);
+
+  --accent: oklch(0.27 0.016 130);
+  --accent-foreground: oklch(0.95 0.006 130);
+
+  --destructive: oklch(0.68 0.18 25);
+  --success: oklch(0.72 0.1 150);
+  --success-foreground: oklch(0.16 0.012 130);
+  --warning: oklch(0.78 0.13 75);
+  --warning-foreground: oklch(0.18 0.04 75);
+
+  --border: oklch(1 0.002 130 / 10%);
+  --input: oklch(1 0.002 130 / 14%);
+  --ring: oklch(0.6 0.06 145);
+
+  --chart-1: oklch(0.78 0.085 145);
+  --chart-2: oklch(0.72 0.08 100);
+  --chart-3: oklch(0.7 0.1 45);
+  --chart-4: oklch(0.62 0.07 200);
+  --chart-5: oklch(0.58 0.06 290);
+
+  --sidebar: oklch(0.205 0.013 130);
+  --sidebar-foreground: oklch(0.95 0.006 130);
+  --sidebar-primary: oklch(0.78 0.085 145);
+  --sidebar-primary-foreground: oklch(0.16 0.012 130);
+  --sidebar-accent: oklch(0.27 0.016 130);
+  --sidebar-accent-foreground: oklch(0.95 0.006 130);
+  --sidebar-border: oklch(1 0.002 130 / 10%);
+  --sidebar-ring: oklch(0.6 0.06 145);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply font-sans antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
   }
-  html {
-    @apply font-sans;
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.018em;
+  }
+  h1 {
+    letter-spacing: -0.022em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  /* Tabular numbers everywhere they show up as data */
+  [data-tabular] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Eyebrow: small-caps style label used as section headers across the app. */
+@utility eyebrow {
+  @apply text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+}
+
+/* Override Google Maps' PlaceAutocompleteElement to match our input system.
+   The element is a custom element with limited stylable surface; we treat the
+   host as the bordered container and zero out the inner parts so the icon and
+   input read as a single composed control. */
+gmp-place-autocomplete {
+  --gmpx-color-surface: transparent;
+  --gmpx-color-on-surface: var(--foreground);
+  --gmpx-color-on-surface-variant: var(--muted-foreground);
+  --gmpx-color-primary: var(--ring);
+  --gmpx-font-family-base: var(--font-geist-sans), system-ui, sans-serif;
+  --gmpx-font-family-headings: var(--font-geist-sans), system-ui, sans-serif;
+  --gmpx-font-size-base: 0.875rem;
+  display: block;
+  width: 100%;
+  height: 2.5rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius);
+  background: transparent;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  overflow: hidden;
+}
+
+gmp-place-autocomplete:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 35%, transparent);
+}
+
+gmp-place-autocomplete::part(input),
+gmp-place-autocomplete::part(input-container),
+gmp-place-autocomplete::part(prefix),
+gmp-place-autocomplete::part(suffix) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  outline: none;
+}
+
+gmp-place-autocomplete::part(input) {
+  color: var(--foreground);
+  height: 100%;
+  padding-inline: 0.875rem;
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

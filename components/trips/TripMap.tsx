@@ -22,6 +22,16 @@ export type MapMatch = {
   lng: number;
 };
 
+// Marker palette uses ink-green / clay-amber rather than red/green so the
+// origin/destination distinction holds for red-green color-blind users.
+const MARKER = {
+  origin: { bg: "#3a5a3d", border: "#1d2e1f", glyph: "#f5f4ee" },
+  destination: { bg: "#b46a3c", border: "#6e3f22", glyph: "#fbf6ee" },
+  match: { bg: "#d8d4c5", border: "#615e54", glyph: "#1d2010" },
+  matchActive: { bg: "#3a5a3d", border: "#1d2e1f", glyph: "#f5f4ee" },
+  route: "#3a5a3d",
+} as const;
+
 export function TripMap({
   origin,
   destination,
@@ -48,63 +58,67 @@ export function TripMap({
 
   if (!MAPS_KEY) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border bg-muted/30 text-sm text-muted-foreground">
-        Set NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY to view the map.
+      <div className="flex h-72 items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 px-6 text-center text-sm text-muted-foreground">
+        Set <code className="rounded bg-background px-1.5 py-0.5 font-mono text-xs">NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY</code>{" "}
+        to view the map.
       </div>
     );
   }
 
   return (
-    <div className="h-[400px] overflow-hidden rounded-lg border">
-      <APIProvider apiKey={MAPS_KEY}>
-        <Map
-          mapId={MAP_ID}
-          defaultCenter={origin}
-          defaultZoom={5}
-          gestureHandling="greedy"
-          fullscreenControl={false}
-          mapTypeControl={false}
-          streetViewControl={false}
-          style={{ width: "100%", height: "100%" }}
-        >
-          <FitBounds points={allPoints} />
-          <RoutePolyline path={polylinePath} />
+    <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="h-[420px]">
+        <APIProvider apiKey={MAPS_KEY}>
+          <Map
+            mapId={MAP_ID}
+            defaultCenter={origin}
+            defaultZoom={5}
+            gestureHandling="greedy"
+            fullscreenControl={false}
+            mapTypeControl={false}
+            streetViewControl={false}
+            style={{ width: "100%", height: "100%" }}
+          >
+            <FitBounds points={allPoints} />
+            <RoutePolyline path={polylinePath} />
 
-          <AdvancedMarker position={origin} title="Start">
-            <Pin
-              background="#10b981"
-              borderColor="#065f46"
-              glyphColor="white"
-            />
-          </AdvancedMarker>
-          <AdvancedMarker position={destination} title="Destination">
-            <Pin
-              background="#ef4444"
-              borderColor="#7f1d1d"
-              glyphColor="white"
-            />
-          </AdvancedMarker>
+            <AdvancedMarker position={origin} title="Start">
+              <Pin
+                background={MARKER.origin.bg}
+                borderColor={MARKER.origin.border}
+                glyphColor={MARKER.origin.glyph}
+              />
+            </AdvancedMarker>
+            <AdvancedMarker position={destination} title="Destination">
+              <Pin
+                background={MARKER.destination.bg}
+                borderColor={MARKER.destination.border}
+                glyphColor={MARKER.destination.glyph}
+              />
+            </AdvancedMarker>
 
-          {matches.map((m) => {
-            const active = selectedId === m.google_place_id;
-            return (
-              <AdvancedMarker
-                key={m.google_place_id}
-                position={{ lat: m.lat, lng: m.lng }}
-                title={m.name}
-                onClick={() => onSelect(active ? null : m.google_place_id)}
-              >
-                <Pin
-                  background={active ? "#3b82f6" : "#f59e0b"}
-                  borderColor={active ? "#1e40af" : "#92400e"}
-                  glyphColor="white"
-                  scale={active ? 1.3 : 1}
-                />
-              </AdvancedMarker>
-            );
-          })}
-        </Map>
-      </APIProvider>
+            {matches.map((m) => {
+              const active = selectedId === m.google_place_id;
+              const palette = active ? MARKER.matchActive : MARKER.match;
+              return (
+                <AdvancedMarker
+                  key={m.google_place_id}
+                  position={{ lat: m.lat, lng: m.lng }}
+                  title={m.name}
+                  onClick={() => onSelect(active ? null : m.google_place_id)}
+                >
+                  <Pin
+                    background={palette.bg}
+                    borderColor={palette.border}
+                    glyphColor={palette.glyph}
+                    scale={active ? 1.25 : 1}
+                  />
+                </AdvancedMarker>
+              );
+            })}
+          </Map>
+        </APIProvider>
+      </div>
     </div>
   );
 }
@@ -122,7 +136,7 @@ function FitBounds({ points }: { points: MapPoint[] }) {
     if (!map || points.length === 0) return;
     const bounds = new google.maps.LatLngBounds();
     for (const p of points) bounds.extend(p);
-    map.fitBounds(bounds, 60);
+    map.fitBounds(bounds, 64);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, key]);
 
@@ -136,7 +150,7 @@ function RoutePolyline({ path }: { path: MapPoint[] }) {
     const polyline = new google.maps.Polyline({
       path,
       geodesic: true,
-      strokeColor: "#3b82f6",
+      strokeColor: MARKER.route,
       strokeOpacity: 0.85,
       strokeWeight: 4,
       map,

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { CopyInviteLink } from "@/components/trips/CopyInviteLink";
 import { FindMatchesButton } from "@/components/trips/FindMatchesButton";
 import { type MatchRow } from "@/components/trips/MatchList";
@@ -37,11 +38,16 @@ export default async function TripDetailPage({
 
   if (!trip) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-6 py-12">
-        <h1 className="text-2xl font-semibold">Trip not found</h1>
-        <p className="text-sm text-muted-foreground">
-          This trip doesn&apos;t exist or you don&apos;t have access.
-        </p>
+      <main className="mx-auto w-full max-w-2xl px-6 py-16">
+        <div className="space-y-3 text-center">
+          <Eyebrow>Trip</Eyebrow>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Trip not found
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            This trip doesn&apos;t exist or you don&apos;t have access.
+          </p>
+        </div>
       </main>
     );
   }
@@ -109,91 +115,123 @@ export default async function TripDetailPage({
   const inviteUrl = `${appUrl}/join/${trip.invite_token}`;
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-8 px-6 py-12">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Your trip</h1>
-        <p className="text-sm text-muted-foreground">
-          {trip.origin_address} → {trip.dest_address}
-        </p>
-      </div>
+    <main className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
+      <header className="space-y-2 pb-8">
+        <Eyebrow>Your trip</Eyebrow>
+        <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
+          <span className="text-foreground">{trip.origin_address}</span>
+          <span className="px-2 text-muted-foreground/70">→</span>
+          <span className="text-foreground">{trip.dest_address}</span>
+        </h1>
+      </header>
 
       {!trip.guest_id ? (
-        <div className="space-y-3 rounded-lg border p-4">
-          <p className="text-sm font-medium">Invite your travel buddy</p>
-          <p className="text-xs text-muted-foreground">
-            Share this link. They&apos;ll be added to the trip when they
-            accept.
-          </p>
-          <CopyInviteLink url={inviteUrl} />
-        </div>
-      ) : (
-        <>
-          <div className="space-y-2 rounded-lg border p-4">
-            <p className="text-sm">
-              You and{" "}
-              <span className="font-medium">{partnerName ?? "your buddy"}</span>{" "}
-              are paired up.
+        <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
+          <div className="space-y-1.5">
+            <h2 className="text-base font-semibold tracking-tight">
+              Invite your travel buddy
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Share this link. They&apos;ll be added to the trip when they
+              accept.
             </p>
-            <div className="grid gap-2 pt-2 text-xs sm:grid-cols-3">
-              <div>
-                <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+          </div>
+          <div className="pt-4">
+            <CopyInviteLink url={inviteUrl} />
+          </div>
+        </section>
+      ) : (
+        <div className="space-y-10">
+          <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+              <span className="text-base">
+                You and{" "}
+                <span className="font-semibold tracking-tight">
+                  {partnerName ?? "your buddy"}
+                </span>
+              </span>
+              <span className="text-sm text-muted-foreground">
+                are paired up.
+              </span>
+            </div>
+            <div className="mt-5 grid gap-x-6 gap-y-5 border-t border-border/60 pt-5 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Both of you
                 </div>
-                <div className="mt-1">
+                <div className="text-sm">
                   {both.length > 0
                     ? both.map((s) => interestLabels[s] ?? s).join(", ")
-                    : "—"}
+                    : <span className="text-muted-foreground">—</span>}
                 </div>
               </div>
-              <div>
-                <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1.5">
+                <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Just you
                 </div>
-                <div className="mt-1">
+                <div className="text-sm">
                   {justMine.length > 0
                     ? justMine.map((s) => interestLabels[s] ?? s).join(", ")
-                    : "—"}
+                    : <span className="text-muted-foreground">—</span>}
                 </div>
               </div>
-              <div>
-                <div className="font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="space-y-1.5">
+                <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   Just them
                 </div>
-                <div className="mt-1">
+                <div className="text-sm">
                   {justTheirs.length > 0
                     ? justTheirs.map((s) => interestLabels[s] ?? s).join(", ")
-                    : "—"}
+                    : <span className="text-muted-foreground">—</span>}
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold">Matches along your route</h2>
-              {trip.matches_computed_at && (
-                <p className="text-xs text-muted-foreground">
-                  Last updated {timeAgo(trip.matches_computed_at)}
-                </p>
-              )}
+          <section className="space-y-6">
+            <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+              <div className="space-y-1">
+                <Eyebrow>Stops along your route</Eyebrow>
+                <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
+                  {trip.matches_computed_at
+                    ? "Matches"
+                    : "Find places you’ll both love"}
+                </h2>
+                {trip.matches_computed_at && (
+                  <p className="text-xs text-muted-foreground">
+                    Last updated {timeAgo(trip.matches_computed_at)}
+                  </p>
+                )}
+              </div>
+              <FindMatchesButton
+                tripId={tripId}
+                label={trip.matches_computed_at ? "Refresh" : "Find our matches"}
+              />
             </div>
-            <FindMatchesButton
-              tripId={tripId}
-              label={trip.matches_computed_at ? "Refresh" : "Find our matches"}
-            />
-          </div>
 
-          {trip.matches_computed_at && (
-            <TripContent
-              tripId={tripId}
-              origin={{ lat: trip.origin_lat, lng: trip.origin_lng }}
-              destination={{ lat: trip.dest_lat, lng: trip.dest_lng }}
-              encodedPolyline={trip.route_polyline}
-              matches={matches}
-              interestLabels={interestLabels}
-            />
-          )}
-        </>
+            {trip.matches_computed_at ? (
+              <TripContent
+                tripId={tripId}
+                origin={{ lat: trip.origin_lat, lng: trip.origin_lng }}
+                destination={{ lat: trip.dest_lat, lng: trip.dest_lng }}
+                encodedPolyline={trip.route_polyline}
+                matches={matches}
+                interestLabels={interestLabels}
+              />
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-muted/30 px-5 py-10 text-center">
+                <p className="mx-auto max-w-[36ch] text-sm text-muted-foreground">
+                  Tap{" "}
+                  <span className="font-medium text-foreground">
+                    Find our matches
+                  </span>{" "}
+                  and we&apos;ll scan a corridor along your route, then rank
+                  the best stops for the two of you.
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
       )}
     </main>
   );

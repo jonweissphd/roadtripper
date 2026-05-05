@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp } from "../actions";
@@ -15,15 +16,15 @@ export default async function SignupPage({
     : "/login";
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold">Sign up</h1>
-        <p className="text-sm text-muted-foreground">
-          Create a Detour account.
-        </p>
+    <div className="space-y-8">
+      <div className="space-y-2 text-center">
+        <Eyebrow>Get started</Eyebrow>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Create your account
+        </h1>
       </div>
 
-      <form action={signUp} className="space-y-4">
+      <form action={signUp} className="space-y-5">
         {next && <input type="hidden" name="next" value={next} />}
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -49,8 +50,12 @@ export default async function SignupPage({
             At least 6 characters.
           </p>
         </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <Button type="submit" className="w-full">
+        {error && (
+          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <Button type="submit" size="lg" className="w-full">
           Sign up
         </Button>
       </form>
@@ -59,7 +64,7 @@ export default async function SignupPage({
         Already have an account?{" "}
         <Link
           href={loginHref}
-          className="text-foreground underline underline-offset-4"
+          className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground"
         >
           Log in
         </Link>
