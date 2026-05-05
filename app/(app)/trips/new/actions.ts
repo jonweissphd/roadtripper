@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 const MIN_INTERESTS = 5;
@@ -32,9 +33,7 @@ export async function createTrip(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
 
   const { count } = await supabase

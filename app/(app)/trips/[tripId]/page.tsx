@@ -3,6 +3,7 @@ import { CopyInviteLink } from "@/components/trips/CopyInviteLink";
 import { FindMatchesButton } from "@/components/trips/FindMatchesButton";
 import { type MatchRow } from "@/components/trips/MatchList";
 import { TripContent } from "@/components/trips/TripContent";
+import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 function timeAgo(iso: string): string {
@@ -23,9 +24,7 @@ export default async function TripDetailPage({
 }) {
   const { tripId } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
 
   const { data: trip } = await supabase

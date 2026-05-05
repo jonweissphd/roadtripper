@@ -22,7 +22,25 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git remote *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(gh auth *)",
+      "Bash(command -v gh)",
+      "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=5 git@github.com)",
+      "Bash(brew --version)",
+      "Bash(git config *)",
+      "Bash(security find-internet-password *)",
+      "Bash(git fetch *)",
+      "Bash(git status *)",
+      "Bash(npx skills *)",
+      "Bash(npx -y skills add --help)",
+      "Bash(npx -y skills --help)",
+      "Bash(npx -y skills add pbakaus/impeccable --agent claude-code -g -y)",
+      "Skill(impeccable)",
+      "Bash(node *)",
+      "Bash(supabase --version)",
+      "Bash(command -v supabase)",
+      "Bash(command -v psql)",
+      "Bash(pbcopy)"
     ]
   }
 }

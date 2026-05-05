@@ -8,6 +8,7 @@ import {
   type Interest,
   type InterestGroup,
 } from "@/components/interests/InterestPicker";
+import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { saveProfile } from "./actions";
 
@@ -29,9 +30,7 @@ export default async function ProfilePage({
 }) {
   const { error, saved } = await searchParams;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
 
   const [profileRes, interestsRes, selectionsRes] = await Promise.all([

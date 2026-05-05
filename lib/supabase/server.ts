@@ -1,7 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { DEV_BYPASS_ENABLED } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function createClient() {
+  // Dev bypass: skip the JWT-bound SSR client and use the service-role admin
+  // client so RLS doesn't block the fake user's reads/writes.
+  if (DEV_BYPASS_ENABLED) {
+    return createAdminClient();
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(
