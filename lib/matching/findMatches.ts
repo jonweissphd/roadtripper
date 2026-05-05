@@ -1,0 +1,222 @@
+import "server-only";
+import { fetchRoute } from "@/lib/google/directions";
+import { detourSecondsBatch } from "@/lib/google/distanceMatrix";
+import {
+  fetchPlaceDetails,
+  searchTextNearbyIds,
+  type PlaceDetails,
+} from "@/lib/google/places";
+import {
+  decodePolyline,
+  perpDistanceMeters,
+  samplePoints,
+  type LatLng,
+} from "@/lib/google/polyline";
+import { rerankPlaces, type RerankInput } from "./rerank";
+
+const MILES_TO_METERS = 1609.344;
+const SAMPLE_RADIUS_M = 12 * MILES_TO_METERS;
+const SAMPLE_SPACING_M = 13 * MILES_TO_METERS;
+const MAX_SAMPLES = 20;
+const CORRIDOR_RADIUS_M = 10 * MILES_TO_METERS;
+const MAX_CANDIDATES_FOR_DETOUR = 50;
+const MAX_DISPLAY = 30;
+
+export type SharedInterest = {
+  slug: string;
+  search_keywords: string[];
+};
+
+export type MatchResult = {
+  place_id: string;
+  name: string;
+  formatted_address?: string;
+  lat: number;
+  lng: number;
+  rating?: number;
+  review_count?: number;
+  primary_photo_id?: string;
+  matched_interests: string[];
+  shared_tags_count: number;
+  detour_seconds: number;
+  editorial_score?: number;
+  editorial_reasoning?: string;
+  raw: PlaceDetails;
+};
+
+export type MatchComputeResult = {
+  matches: MatchResult[];
+  encodedPolyline: string | null;
+};
+
+export async function findMatches(
+  origin: LatLng,
+  destination: LatLng,
+  sharedInterests: SharedInterest[],
+): Promise<MatchComputeResult> {
+  if (sharedInterests.length === 0) {
+    return { matches: [], encodedPolyline: null };
+  }
+
+  // 1. Route + decode polyline.
+  const route = await fetchRoute(origin, destination);
+  if (!route) return { matches: [], encodedPolyline: null };
+  const polyline = decodePolyline(route.encodedPolyline);
+
+  // 2. Sample circles along the route.
+  const samples = samplePoints(polyline, SAMPLE_SPACING_M, MAX_SAMPLES);
+
+  // 3. Discovery: searchText for each (interest keyword × sample).
+  // Track which interest slugs each place hits.
+  const placeMatches = new Map<string, Set<string>>();
+
+  await Promise.all(
+    sharedInterests.flatMap((interest) =>
+      interest.search_keywords.flatMap((keyword) =>
+        samples.map(async (sample) => {
+          try {
+            const ids = await searchTextNearbyIds(
+              keyword,
+              sample,
+              SAMPLE_RADIUS_M,
+            );
+            for (const id of ids) {
+              if (!placeMatches.has(id)) placeMatches.set(id, new Set());
+              placeMatches.get(id)!.add(interest.slug);
+            }
+          } catch (err) {
+            console.error(
+              `searchText failed for "${keyword}" near ${sample.lat},${sample.lng}`,
+              err,
+            );
+          }
+        }),
+      ),
+    ),
+  );
+
+  if (placeMatches.size === 0) {
+    return { matches: [], encodedPolyline: route.encodedPolyline };
+  }
+
+  // 4. Rank candidates by shared-tags-hit, take top N for the (more expensive) detail fetch.
+  const sortedIds = [...placeMatches.entries()]
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, MAX_CANDIDATES_FOR_DETOUR)
+    .map(([id]) => id);
+
+  const detailsResults = await Promise.all(
+    sortedIds.map(async (id) => ({
+      id,
+      details: await fetchPlaceDetails(id),
+    })),
+  );
+
+  // 5. Filter to corridor.
+  type Candidate = {
+    id: string;
+    name: string;
+    lat: number;
+    lng: number;
+    formatted_address?: string;
+    rating?: number;
+    review_count?: number;
+    primary_photo_id?: string;
+    types: string[];
+    review_excerpts: string[];
+    raw: PlaceDetails;
+  };
+
+  const candidates: Candidate[] = [];
+  for (const { id, details } of detailsResults) {
+    if (!details?.location) continue;
+    const point: LatLng = {
+      lat: details.location.latitude,
+      lng: details.location.longitude,
+    };
+    if (perpDistanceMeters(point, polyline) > CORRIDOR_RADIUS_M) continue;
+
+    const reviews = details.reviews ?? [];
+    const photos = details.photos ?? [];
+
+    candidates.push({
+      id,
+      name: details.displayName?.text ?? "Unnamed place",
+      lat: point.lat,
+      lng: point.lng,
+      formatted_address: details.formattedAddress,
+      rating: details.rating,
+      review_count: details.userRatingCount,
+      primary_photo_id: photos[0]?.name,
+      types: details.types ?? [],
+      review_excerpts: reviews
+        .slice(0, 3)
+        .map((r) => (r.text?.text ?? "").slice(0, 280)),
+      raw: details,
+    });
+  }
+
+  if (candidates.length === 0) {
+    return { matches: [], encodedPolyline: route.encodedPolyline };
+  }
+
+  // 6. Detour times via Distance Matrix (batched).
+  const detours = await detourSecondsBatch(
+    origin,
+    destination,
+    route.durationSeconds,
+    candidates.map((c) => ({ lat: c.lat, lng: c.lng })),
+  );
+
+  // 7. Rerank with Gemini.
+  const rerankInput: RerankInput[] = candidates.map((c) => ({
+    id: c.id,
+    name: c.name,
+    formatted_address: c.formatted_address,
+    rating: c.rating,
+    review_count: c.review_count,
+    matched_interests: [...(placeMatches.get(c.id) ?? [])],
+    review_excerpts: c.review_excerpts,
+    types: c.types,
+  }));
+
+  const rerankResults = await rerankPlaces(rerankInput);
+  const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
+
+  // 8. Assemble + final sort.
+  const results: MatchResult[] = candidates.map((c, i) => {
+    const matchedSlugs = [...(placeMatches.get(c.id) ?? [])];
+    const rerank = rerankById.get(c.id);
+    return {
+      place_id: c.id,
+      name: c.name,
+      formatted_address: c.formatted_address,
+      lat: c.lat,
+      lng: c.lng,
+      rating: c.rating,
+      review_count: c.review_count,
+      primary_photo_id: c.primary_photo_id,
+      matched_interests: matchedSlugs,
+      shared_tags_count: matchedSlugs.length,
+      detour_seconds: detours[i],
+      editorial_score: rerank?.score,
+      editorial_reasoning: rerank?.reasoning,
+      raw: c.raw,
+    };
+  });
+
+  const matches = results
+    .filter((r) => Number.isFinite(r.detour_seconds))
+    .sort((a, b) => {
+      if (b.shared_tags_count !== a.shared_tags_count) {
+        return b.shared_tags_count - a.shared_tags_count;
+      }
+      const ae = a.editorial_score ?? 0;
+      const be = b.editorial_score ?? 0;
+      if (be !== ae) return be - ae;
+      return a.detour_seconds - b.detour_seconds;
+    })
+    .slice(0, MAX_DISPLAY);
+
+  return { matches, encodedPolyline: route.encodedPolyline };
+}
