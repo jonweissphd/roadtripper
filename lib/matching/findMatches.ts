@@ -282,9 +282,14 @@ export async function findMatches(
 
   const foodCap = Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP);
   const matches: MatchResult[] = [];
+  const seenNames = new Set<string>();
   let foodCount = 0;
   for (const r of sorted) {
     if (matches.length >= MAX_DISPLAY) break;
+    // Deduplicate chains — keep only the best-scored location of each name.
+    const normName = r.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seenNames.has(normName)) continue;
+    seenNames.add(normName);
     const isFood = isFoodOrDrink(r.raw.types ?? []);
     if (isFood && foodCount >= foodCap) continue;
     matches.push(r);

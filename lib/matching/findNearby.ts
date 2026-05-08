@@ -9,6 +9,7 @@ import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
 const SEARCH_RADIUS_M = 8 * MILES_TO_METERS;
+const MAX_DISTANCE_M = 30 * MILES_TO_METERS; // Hard cutoff: drop anything 30+ miles away
 const MAX_CANDIDATES = 50;
 const MAX_DISPLAY = 30;
 const FOOD_DRINK_CAP = 0.2;
@@ -127,6 +128,7 @@ export async function findNearby(
       lng: details.location.longitude,
     };
     const dist = haversineMeters(center, point);
+    if (dist > MAX_DISTANCE_M) continue; // Too far — Google bias isn't a hard filter
 
     const reviews = details.reviews ?? [];
     const photos = details.photos ?? [];
@@ -208,9 +210,14 @@ export async function findNearby(
 
   const foodCap = Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP);
   const matches: NearbyResult[] = [];
+  const seenNames = new Set<string>();
   let foodCount = 0;
   for (const r of sorted) {
     if (matches.length >= MAX_DISPLAY) break;
+    // Deduplicate chains — keep only the closest location of each name.
+    const normName = r.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (seenNames.has(normName)) continue;
+    seenNames.add(normName);
     const isFood = isFoodOrDrink(r.raw.types ?? []);
     if (isFood && foodCount >= foodCap) continue;
     matches.push(r);
