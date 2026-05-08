@@ -116,59 +116,75 @@ export default async function ProfilePage({
             {error}
           </p>
         )}
-        {saved && (
+        {saved && !canStartTrip && (
           <p className="rounded-md bg-success/12 px-3 py-2 text-sm text-success">
-            Saved.
+            Saved. Pick at least {MIN_INTERESTS_FOR_TRIP} interests to get started.
           </p>
         )}
 
-        <div className="flex justify-end pt-2">
-          <Button type="submit" size="lg">
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Button type="submit" size="lg" variant="outline">
             Save profile
           </Button>
+          {canStartTrip && (
+            <Link
+              href="#start"
+              className={buttonVariants({
+                size: "lg",
+                className: "text-[0.9375rem]",
+              })}
+            >
+              Let&apos;s Detour →
+            </Link>
+          )}
         </div>
       </form>
 
       {canStartTrip && (
-        <section id="start" className="mt-14 space-y-5">
+        <section
+          id="start"
+          className="mt-12 space-y-5 rounded-2xl border-2 border-primary/25 bg-primary/[0.06] p-6 sm:p-8"
+        >
+          {saved && (
+            <div className="rounded-lg bg-primary/15 px-4 py-2.5 text-sm font-medium text-primary">
+              ✓ Profile saved!
+            </div>
+          )}
           <div className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight">
-              What are you up to?
+            <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
+              Ready? Pick your adventure.
             </h2>
             <p className="text-sm text-muted-foreground">
-              Pick one and we&apos;ll find the best stuff for you.
+              Your interests are locked in. Where to next?
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/trips/new"
-              className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+              className={buttonVariants({
+                size: "lg",
+                className:
+                  "h-auto flex-col gap-0.5 py-4 text-[0.9375rem] sm:px-8",
+              })}
             >
-              <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-xl">
-                🚗
-              </div>
-              <h3 className="text-[0.9375rem] font-semibold tracking-tight">
-                Plan a road trip
-              </h3>
-              <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
-                Got a start and destination? We&apos;ll find the best stops
-                along your route.
-              </p>
+              <span>🚗 Plan a road trip</span>
+              <span className="text-xs font-normal text-primary-foreground/70">
+                Start + destination
+              </span>
             </Link>
             <Link
               href="/explore/new"
-              className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+              className={buttonVariants({
+                size: "lg",
+                variant: "outline",
+                className:
+                  "h-auto flex-col gap-0.5 border-2 border-primary/30 py-4 text-[0.9375rem] hover:border-primary/50 hover:bg-primary/5 sm:px-8",
+              })}
             >
-              <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-xl">
-                📍
-              </div>
-              <h3 className="text-[0.9375rem] font-semibold tracking-tight">
-                Explore an area
-              </h3>
-              <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
-                In a city or visiting somewhere new? We&apos;ll find things to
-                do nearby.
-              </p>
+              <span>📍 Explore an area</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                City or zip code
+              </span>
             </Link>
           </div>
         </section>
