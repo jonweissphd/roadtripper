@@ -24,8 +24,9 @@ export default async function AppLayout({
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3.5">
           <Link
             href="/profile"
-            className="text-[0.95rem] font-semibold tracking-[-0.01em] transition-colors hover:text-foreground/80"
+            className="flex items-center gap-2 text-[0.95rem] font-semibold tracking-[-0.01em] transition-colors hover:text-foreground/80"
           >
+            <span className="text-lg">🗺️</span>
             Detour
           </Link>
           {!DEV_BYPASS_ENABLED && (

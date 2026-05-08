@@ -18,9 +18,13 @@ const MIN_INTERESTS_FOR_TRIP = 5;
 const CATEGORY_ORDER = [
   "food",
   "drinks",
+  "nightlife",
   "shopping",
   "outdoor",
+  "fitness",
   "activities",
+  "culture",
+  "animals",
   "quirky",
 ];
 
@@ -67,14 +71,14 @@ export default async function ProfilePage({
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-8">
         <div className="space-y-2">
           <Eyebrow>Your profile</Eyebrow>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-[2rem]">
-            Tell us about you
+          <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+            What do you love?
           </h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+          <p className="text-[0.8125rem] text-muted-foreground">{user.email}</p>
         </div>
         {canStartTrip && (
-          <Link href="/trips/new" className={buttonVariants()}>
-            New trip
+          <Link href="#start" className={buttonVariants()}>
+            Let&apos;s go
           </Link>
         )}
       </div>
@@ -124,6 +128,51 @@ export default async function ProfilePage({
           </Button>
         </div>
       </form>
+
+      {canStartTrip && (
+        <section id="start" className="mt-14 space-y-5">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold tracking-tight">
+              What are you up to?
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Pick one and we&apos;ll find the best stuff for you.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link
+              href="/trips/new"
+              className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+            >
+              <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-xl">
+                🚗
+              </div>
+              <h3 className="text-[0.9375rem] font-semibold tracking-tight">
+                Plan a road trip
+              </h3>
+              <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
+                Got a start and destination? We&apos;ll find the best stops
+                along your route.
+              </p>
+            </Link>
+            <Link
+              href="/explore/new"
+              className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-primary/40 hover:bg-primary/5"
+            >
+              <div className="mb-3 flex size-11 items-center justify-center rounded-lg bg-primary/10 text-xl">
+                📍
+              </div>
+              <h3 className="text-[0.9375rem] font-semibold tracking-tight">
+                Explore an area
+              </h3>
+              <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
+                In a city or visiting somewhere new? We&apos;ll find things to
+                do nearby.
+              </p>
+            </Link>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

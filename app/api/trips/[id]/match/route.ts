@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { findMatches } from "@/lib/matching/findMatches";
+import { findNearby } from "@/lib/matching/findNearby";
+import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,15 +9,25 @@ import { createClient } from "@/lib/supabase/server";
 export const maxDuration = 60;
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id: tripId } = await context.params;
 
+  const body = (await request.json().catch(() => ({}))) as {
+    routeStart?: number;
+    routeEnd?: number;
+  };
+  const routeRange =
+    typeof body.routeStart === "number" && typeof body.routeEnd === "number"
+      ? {
+          start: Math.max(0, body.routeStart),
+          end: Math.min(1, body.routeEnd),
+        }
+      : undefined;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
@@ -23,7 +35,7 @@ export async function POST(
   const { data: trip } = await supabase
     .from("trips")
     .select(
-      "id, creator_id, guest_id, origin_lat, origin_lng, dest_lat, dest_lng",
+      "id, creator_id, guest_id, origin_lat, origin_lng, dest_lat, dest_lng, trip_type",
     )
     .eq("id", tripId)
     .maybeSingle();
@@ -32,9 +44,9 @@ export async function POST(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  // Union of interests across whoever is on the trip. Each tag gets weight 2
-  // if both travelers picked it, 1 if only one. Solo trips collapse to weight 1
-  // for everything the creator picked.
+  const isExplore = trip.trip_type === "explore";
+
+  // Union of interests across whoever is on the trip.
   const [creatorRes, guestRes] = await Promise.all([
     supabase
       .from("profile_interests")
@@ -83,17 +95,78 @@ export async function POST(
       (creatorIds.has(i.id) ? 1 : 0) + (guestIds.has(i.id) ? 1 : 0),
   }));
 
-  const { matches, encodedPolyline } = await findMatches(
-    { lat: trip.origin_lat, lng: trip.origin_lng },
-    { lat: trip.dest_lat, lng: trip.dest_lng },
-    weighted,
-  );
+  // Branch: explore mode searches around a point, road trip follows a route.
+  let matchRows: Array<{
+    place_id: string;
+    name: string;
+    formatted_address?: string;
+    lat: number;
+    lng: number;
+    detour_seconds: number;
+    rating?: number;
+    review_count?: number;
+    primary_photo_id?: string;
+    matched_interests: string[];
+    shared_tags_count: number;
+    editorial_score?: number;
+    editorial_reasoning?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    raw: any;
+  }> = [];
+  let encodedPolyline: string | null = null;
+
+  if (isExplore) {
+    const nearby = await findNearby(
+      { lat: trip.origin_lat, lng: trip.origin_lng },
+      weighted,
+    );
+    matchRows = nearby.map((n) => ({
+      place_id: n.place_id,
+      name: n.name,
+      formatted_address: n.formatted_address,
+      lat: n.lat,
+      lng: n.lng,
+      detour_seconds: Math.round(n.distance_meters / 15),
+      rating: n.rating,
+      review_count: n.review_count,
+      primary_photo_id: n.primary_photo_id,
+      matched_interests: n.matched_interests,
+      shared_tags_count: n.shared_tags_count,
+      editorial_score: n.editorial_score,
+      editorial_reasoning: n.editorial_reasoning,
+      raw: n.raw,
+    }));
+  } else {
+    const result = await findMatches(
+      { lat: trip.origin_lat, lng: trip.origin_lng },
+      { lat: trip.dest_lat, lng: trip.dest_lng },
+      weighted,
+      routeRange,
+    );
+    encodedPolyline = result.encodedPolyline;
+    matchRows = result.matches.map((m) => ({
+      place_id: m.place_id,
+      name: m.name,
+      formatted_address: m.formatted_address,
+      lat: m.lat,
+      lng: m.lng,
+      detour_seconds: m.detour_seconds,
+      rating: m.rating,
+      review_count: m.review_count,
+      primary_photo_id: m.primary_photo_id,
+      matched_interests: m.matched_interests,
+      shared_tags_count: m.shared_tags_count,
+      editorial_score: m.editorial_score,
+      editorial_reasoning: m.editorial_reasoning,
+      raw: m.raw,
+    }));
+  }
 
   const admin = createAdminClient();
   await admin.from("trip_matches").delete().eq("trip_id", tripId);
 
-  if (matches.length > 0) {
-    const rows = matches.map((m) => ({
+  if (matchRows.length > 0) {
+    const rows = matchRows.map((m) => ({
       trip_id: tripId,
       google_place_id: m.place_id,
       name: m.name,
@@ -125,5 +198,5 @@ export async function POST(
     })
     .eq("id", tripId);
 
-  return NextResponse.json({ ok: true, count: matches.length });
+  return NextResponse.json({ ok: true, count: matchRows.length });
 }

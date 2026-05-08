@@ -21,6 +21,45 @@ const MAX_SAMPLES = 20;
 const CORRIDOR_RADIUS_M = 10 * MILES_TO_METERS;
 const MAX_CANDIDATES_FOR_DETOUR = 50;
 const MAX_DISPLAY = 30;
+const FOOD_DRINK_CAP = 0.2;
+
+const FOOD_DRINK_TYPES = new Set([
+  "restaurant",
+  "food",
+  "bakery",
+  "cafe",
+  "bar",
+  "meal_delivery",
+  "meal_takeaway",
+  "ice_cream_shop",
+  "pizza_restaurant",
+  "burger_restaurant",
+  "sushi_restaurant",
+  "seafood_restaurant",
+  "steak_house",
+  "sandwich_shop",
+  "coffee_shop",
+  "brunch_restaurant",
+  "breakfast_restaurant",
+  "fast_food_restaurant",
+  "american_restaurant",
+  "chinese_restaurant",
+  "indian_restaurant",
+  "italian_restaurant",
+  "japanese_restaurant",
+  "korean_restaurant",
+  "mexican_restaurant",
+  "thai_restaurant",
+  "vietnamese_restaurant",
+  "vegetarian_restaurant",
+  "vegan_restaurant",
+  "ramen_restaurant",
+  "barbecue_restaurant",
+]);
+
+function isFoodOrDrink(types: string[]): boolean {
+  return types.some((t) => FOOD_DRINK_TYPES.has(t));
+}
 
 export type SharedInterest = {
   slug: string;
@@ -55,6 +94,7 @@ export async function findMatches(
   origin: LatLng,
   destination: LatLng,
   sharedInterests: SharedInterest[],
+  routeRange?: { start: number; end: number },
 ): Promise<MatchComputeResult> {
   if (sharedInterests.length === 0) {
     return { matches: [], encodedPolyline: null };
@@ -69,8 +109,13 @@ export async function findMatches(
   if (!route) return { matches: [], encodedPolyline: null };
   const polyline = decodePolyline(route.encodedPolyline);
 
-  // 2. Sample circles along the route.
-  const samples = samplePoints(polyline, SAMPLE_SPACING_M, MAX_SAMPLES);
+  // 2. Sample circles along the route, scoped to the requested range.
+  const allSamples = samplePoints(polyline, SAMPLE_SPACING_M, MAX_SAMPLES);
+  const start = routeRange?.start ?? 0;
+  const end = routeRange?.end ?? 1;
+  const startIdx = Math.floor(start * allSamples.length);
+  const endIdx = Math.ceil(end * allSamples.length);
+  const samples = allSamples.slice(startIdx, endIdx);
 
   // 3. Discovery: searchText for each (interest keyword × sample).
   // Track which interest slugs each place hits.
@@ -219,18 +264,32 @@ export async function findMatches(
     };
   });
 
-  const matches = results
+  const sorted = results
     .filter((r) => Number.isFinite(r.detour_seconds))
     .sort((a, b) => {
       if (b.shared_tags_count !== a.shared_tags_count) {
         return b.shared_tags_count - a.shared_tags_count;
       }
+      // Prefer non-food places when match scores are equal.
+      const aFood = isFoodOrDrink(a.raw.types ?? []) ? 0 : 1;
+      const bFood = isFoodOrDrink(b.raw.types ?? []) ? 0 : 1;
+      if (aFood !== bFood) return bFood - aFood;
       const ae = a.editorial_score ?? 0;
       const be = b.editorial_score ?? 0;
       if (be !== ae) return be - ae;
       return a.detour_seconds - b.detour_seconds;
-    })
-    .slice(0, MAX_DISPLAY);
+    });
+
+  const foodCap = Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP);
+  const matches: MatchResult[] = [];
+  let foodCount = 0;
+  for (const r of sorted) {
+    if (matches.length >= MAX_DISPLAY) break;
+    const isFood = isFoodOrDrink(r.raw.types ?? []);
+    if (isFood && foodCount >= foodCap) continue;
+    matches.push(r);
+    if (isFood) foodCount++;
+  }
 
   return { matches, encodedPolyline: route.encodedPolyline };
 }

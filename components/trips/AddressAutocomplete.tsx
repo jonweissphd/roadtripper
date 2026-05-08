@@ -1,51 +1,40 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
 
-let bootstrapped = false;
+let loadPromise: Promise<void> | null = null;
 
-// Google's official async bootstrap loader. Sets up google.maps.importLibrary
-// before any maps script is fetched, so dynamic library loading works.
-// https://developers.google.com/maps/documentation/javascript/load-maps-js-api
-function bootstrapGoogleMaps() {
-  if (bootstrapped) return;
-  bootstrapped = true;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ((g: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any;
-    const goog = (w.google = w.google || {});
-    const maps = (goog.maps = goog.maps || {});
-    const libs = new Set<string>();
-    const params = new URLSearchParams();
-    let loaderPromise: Promise<void> | null = null;
-    const start = () =>
-      loaderPromise ||
-      (loaderPromise = new Promise<void>((resolve, reject) => {
-        const s = document.createElement("script");
-        params.set("libraries", [...libs].join(","));
-        for (const k in g) {
-          params.set(
-            k.replace(/[A-Z]/g, (t) => "_" + t[0].toLowerCase()),
-            g[k],
-          );
-        }
-        params.set("callback", "google.maps.__ib__");
-        s.src = `https://maps.googleapis.com/maps/api/js?${params}`;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (maps as any).__ib__ = resolve;
-        s.onerror = () =>
-          reject(new Error("Google Maps JavaScript API could not load."));
-        document.head.appendChild(s);
-      }));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    maps.importLibrary = (name: string, ...rest: any[]) => {
-      libs.add(name);
-      return start().then(() => maps.importLibrary(name, ...rest));
-    };
-  })({ key: MAPS_KEY, v: "weekly" });
+function loadGoogleMaps(): Promise<void> {
+  if (loadPromise) return loadPromise;
+  loadPromise = new Promise<void>((resolve, reject) => {
+    if (typeof google !== "undefined" && google.maps?.places) {
+      resolve();
+      return;
+    }
+    // Check if script tag already exists (e.g. from TripMap on a previous page).
+    const existing = document.querySelector(
+      'script[src*="maps.googleapis.com/maps/api/js"]',
+    );
+    if (existing) {
+      const check = () => {
+        if (typeof google !== "undefined" && google.maps?.places) resolve();
+        else setTimeout(check, 50);
+      };
+      check();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&libraries=places&v=weekly`;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () =>
+      reject(new Error("Google Maps JavaScript API could not load."));
+    document.head.appendChild(script);
+  });
+  return loadPromise;
 }
 
 export type AddressSelection = {
@@ -64,7 +53,7 @@ export function AddressAutocomplete({
   label: string;
   defaultValue?: AddressSelection;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [selection, setSelection] = useState<AddressSelection | undefined>(
     defaultValue,
   );
@@ -75,38 +64,51 @@ export function AddressAutocomplete({
   );
 
   useEffect(() => {
-    if (!MAPS_KEY) return;
-
-    const container = containerRef.current;
-    if (!container) return;
+    if (!MAPS_KEY || !inputRef.current) return;
 
     let canceled = false;
-    let element: google.maps.places.PlaceAutocompleteElement | null = null;
+    let autocomplete: google.maps.places.Autocomplete | null = null;
 
-    bootstrapGoogleMaps();
-    google.maps
-      .importLibrary("places")
+    loadGoogleMaps()
       .then(() => {
-        if (canceled) return;
+        if (canceled || !inputRef.current) return;
 
-        element = new google.maps.places.PlaceAutocompleteElement({});
-        element.style.width = "100%";
-        container.appendChild(element);
+        autocomplete = new google.maps.places.Autocomplete(
+          inputRef.current,
+          {
+            fields: ["formatted_address", "geometry", "place_id"],
+            types: ["geocode", "establishment"],
+          },
+        );
 
-        element.addEventListener("gmp-select", async (event) => {
-          const placePrediction = event.placePrediction;
-          if (!placePrediction) return;
-          const place = placePrediction.toPlace();
-          await place.fetchFields({
-            fields: ["formattedAddress", "location", "id"],
-          });
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete!.getPlace();
+          if (!place.geometry?.location) return;
           if (canceled) return;
+
+          const address = place.formatted_address ?? "";
+          if (inputRef.current) inputRef.current.value = address;
+
           setSelection({
-            address: place.formattedAddress ?? "",
-            lat: place.location?.lat() ?? 0,
-            lng: place.location?.lng() ?? 0,
-            place_id: place.id ?? "",
+            address,
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+            place_id: place.place_id ?? "",
           });
+        });
+
+        // Handle Enter key to select first result
+        inputRef.current.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && autocomplete) {
+            e.preventDefault();
+            // Trigger selection of the first prediction
+            const predictions = document.querySelectorAll(
+              ".pac-item:first-child",
+            );
+            if (predictions.length > 0) {
+              (predictions[0] as HTMLElement).click();
+            }
+          }
         });
       })
       .catch((err: unknown) => {
@@ -117,16 +119,28 @@ export function AddressAutocomplete({
 
     return () => {
       canceled = true;
-      if (element && container.contains(element)) {
-        container.removeChild(element);
-      }
     };
   }, []);
 
   return (
-    <div className="space-y-2.5">
-      <label className="text-sm font-medium leading-none">{label}</label>
-      <div ref={containerRef} className="w-full" />
+    <div className="space-y-2">
+      <label htmlFor={`${name}-input`} className="text-sm font-medium leading-none">
+        {label}
+      </label>
+      <input
+        ref={inputRef}
+        id={`${name}-input`}
+        type="text"
+        placeholder={`Search for ${label.toLowerCase()}`}
+        defaultValue={defaultValue?.address}
+        className={cn(
+          "flex h-10 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm",
+          "placeholder:text-muted-foreground/60",
+          "outline-none transition-colors",
+          "focus:border-ring focus:ring-[3px] focus:ring-ring/40",
+        )}
+        autoComplete="off"
+      />
       {selection?.address && (
         <p className="text-xs text-muted-foreground">{selection.address}</p>
       )}

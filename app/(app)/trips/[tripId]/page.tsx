@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { CopyInviteLink } from "@/components/trips/CopyInviteLink";
@@ -28,10 +29,10 @@ export default async function TripDetailPage({
   const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
 
-  const { data: trip } = await supabase
+  const { data: trip, error: tripError } = await supabase
     .from("trips")
     .select(
-      "id, creator_id, guest_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng, status, invite_token, matches_computed_at, matches_combined, route_polyline",
+      "id, creator_id, guest_id, origin_address, origin_lat, origin_lng, dest_address, dest_lat, dest_lng, status, invite_token, matches_computed_at, matches_combined, route_polyline, trip_type",
     )
     .eq("id", tripId)
     .maybeSingle();
@@ -67,13 +68,13 @@ export default async function TripDetailPage({
       supabase
         .from("trip_matches")
         .select(
-          "google_place_id, name, formatted_address, lat, lng, detour_seconds, rating, review_count, matched_interests, shared_tags_count",
+          "google_place_id, name, formatted_address, lat, lng, detour_seconds, rating, review_count, matched_interests, shared_tags_count, primary_photo_id, editorial_reasoning",
         )
         .eq("trip_id", tripId)
         .order("shared_tags_count", { ascending: false })
         .order("editorial_score", { ascending: false, nullsFirst: false })
         .order("detour_seconds", { ascending: true }),
-      supabase.from("interests").select("id, slug, label"),
+      supabase.from("interests").select("id, slug, label, category"),
       supabase
         .from("profile_interests")
         .select("interest_id")
@@ -97,6 +98,10 @@ export default async function TripDetailPage({
     allInterests.map((i) => [i.id, i.slug]),
   );
 
+  const categoryById: Record<string, string> = Object.fromEntries(
+    allInterests.map((i) => [i.id, i.category]),
+  );
+
   const mySlugs = new Set(
     (mineRes.data ?? [])
       .map((r) => slugById[r.interest_id])
@@ -111,21 +116,97 @@ export default async function TripDetailPage({
   const justMine = [...mySlugs].filter((s) => !theirSlugs.has(s));
   const justTheirs = [...theirSlugs].filter((s) => !mySlugs.has(s));
 
+  // Group the user's interests by category for display.
+  const myInterestsByCategory = new Map<string, string[]>();
+  for (const row of mineRes.data ?? []) {
+    const slug = slugById[row.interest_id];
+    const cat = categoryById[row.interest_id];
+    if (!slug || !cat) continue;
+    if (!myInterestsByCategory.has(cat)) myInterestsByCategory.set(cat, []);
+    myInterestsByCategory.get(cat)!.push(interestLabels[slug] ?? slug);
+  }
+  const CATEGORY_DISPLAY: Record<string, { label: string; emoji: string }> = {
+    food: { label: "Food", emoji: "🍕" },
+    drinks: { label: "Drinks", emoji: "☕" },
+    nightlife: { label: "Nightlife", emoji: "🌙" },
+    shopping: { label: "Shopping", emoji: "🛍️" },
+    outdoor: { label: "Outdoors", emoji: "🌿" },
+    fitness: { label: "Fitness", emoji: "💪" },
+    activities: { label: "Activities", emoji: "🎯" },
+    culture: { label: "Culture", emoji: "🎨" },
+    animals: { label: "Animals", emoji: "🐾" },
+    quirky: { label: "Quirky", emoji: "✨" },
+  };
+  const CATEGORY_ORDER = ["food", "drinks", "nightlife", "shopping", "outdoor", "fitness", "activities", "culture", "animals", "quirky"];
+
+  const isExplore = trip.trip_type === "explore";
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const inviteUrl = `${appUrl}/join/${trip.invite_token}`;
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
       <header className="space-y-2 pb-8">
-        <Eyebrow>Your trip</Eyebrow>
-        <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
-          <span className="text-foreground">{trip.origin_address}</span>
-          <span className="px-2 text-muted-foreground/70">→</span>
-          <span className="text-foreground">{trip.dest_address}</span>
-        </h1>
+        <Eyebrow>{isExplore ? "Exploring" : "Your trip"}</Eyebrow>
+        {isExplore ? (
+          <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
+            <span className="mr-2">📍</span>
+            <span className="text-foreground">{trip.origin_address}</span>
+          </h1>
+        ) : (
+          <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
+            <span className="text-foreground">{trip.origin_address}</span>
+            <span className="px-2 text-muted-foreground/70">→</span>
+            <span className="text-foreground">{trip.dest_address}</span>
+          </h1>
+        )}
       </header>
 
       <div className="space-y-10">
+        {/* Your interests — always visible */}
+        {myInterestsByCategory.size > 0 && (
+          <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-base font-semibold tracking-tight">
+                Your interests
+              </h2>
+              <Link
+                href="/profile"
+                className="text-xs font-medium text-muted-foreground underline decoration-muted-foreground/30 underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground/50"
+              >
+                Edit
+              </Link>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+              {CATEGORY_ORDER.filter((cat) => myInterestsByCategory.has(cat)).map(
+                (cat) => {
+                  const meta = CATEGORY_DISPLAY[cat] ?? {
+                    label: cat,
+                    emoji: "•",
+                  };
+                  return (
+                    <div key={cat} className="space-y-1">
+                      <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        <span className="mr-1">{meta.emoji}</span>
+                        {meta.label}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {myInterestsByCategory.get(cat)!.map((label) => (
+                          <span
+                            key={label}
+                            className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          </section>
+        )}
+
         {trip.guest_id && (
           <section className="rounded-xl border border-border/70 bg-card p-5 sm:p-6">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -177,15 +258,21 @@ export default async function TripDetailPage({
         <section className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
             <div className="space-y-1">
-              <Eyebrow>Stops along your route</Eyebrow>
+              <Eyebrow>
+                {isExplore ? "Things to do nearby" : "Stops along your route"}
+              </Eyebrow>
               <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
                 {trip.matches_computed_at
                   ? trip.guest_id
                     ? "Matches"
-                    : "Your stops"
+                    : isExplore
+                      ? "Your picks"
+                      : "Your stops"
                   : trip.guest_id
                     ? "Find places you'll both love"
-                    : "Find your stops"}
+                    : isExplore
+                      ? "Discover what's nearby"
+                      : "Find your stops"}
               </h2>
               {trip.matches_computed_at && (
                 <p className="text-xs text-muted-foreground">
@@ -195,12 +282,15 @@ export default async function TripDetailPage({
             </div>
             <FindMatchesButton
               tripId={tripId}
+              isExplore={isExplore}
               label={
                 trip.matches_computed_at
                   ? trip.guest_id && !trip.matches_combined
                     ? "Refresh combined"
                     : "Refresh"
-                  : "Find matches"
+                  : isExplore
+                    ? "Explore"
+                    : "Find matches"
               }
             />
           </div>
@@ -217,19 +307,24 @@ export default async function TripDetailPage({
               tripId={tripId}
               origin={{ lat: trip.origin_lat, lng: trip.origin_lng }}
               destination={{ lat: trip.dest_lat, lng: trip.dest_lng }}
+              originAddress={trip.origin_address}
+              destAddress={trip.dest_address}
               encodedPolyline={trip.route_polyline}
               matches={matches}
               interestLabels={interestLabels}
+              isExplore={isExplore}
             />
           ) : (
             <div className="rounded-xl border border-dashed border-border bg-muted/30 px-5 py-10 text-center">
               <p className="mx-auto max-w-[36ch] text-sm text-muted-foreground">
                 Tap{" "}
                 <span className="font-medium text-foreground">
-                  Find matches
+                  {isExplore ? "Explore" : "Find matches"}
                 </span>{" "}
-                and we&apos;ll scan a corridor along your route, then rank the
-                best stops{trip.guest_id ? " for the two of you" : ""}.
+                {isExplore
+                  ? "and we’ll find the best things to do around here"
+                  : "and we’ll scan a corridor along your route, then rank the best stops"}
+                {trip.guest_id ? " for the two of you" : ""}.
               </p>
             </div>
           )}

@@ -89,7 +89,7 @@ export function InterestPicker({
           <h3 className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {CATEGORY_LABELS[group.category] ?? group.category}
           </h3>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {group.interests.map((interest) => {
               const on = selected.has(interest.id);
               return (
@@ -99,10 +99,10 @@ export function InterestPicker({
                   onClick={() => toggle(interest.id)}
                   aria-pressed={on}
                   className={cn(
-                    "h-8 rounded-full border px-3.5 text-[0.8125rem] transition-[color,background-color,border-color] duration-150 ease-out outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35",
+                    "h-9 rounded-full border px-4 text-sm font-medium transition-[color,background-color,border-color,box-shadow] duration-150 ease-out outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35",
                     on
-                      ? "border-primary bg-primary text-primary-foreground hover:bg-primary/92"
-                      : "border-border bg-background text-foreground hover:border-foreground/30 hover:bg-muted",
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/92"
+                      : "border-border bg-background text-foreground hover:border-foreground/30 hover:bg-muted/70",
                   )}
                 >
                   {interest.label}

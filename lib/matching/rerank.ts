@@ -20,13 +20,19 @@ export type RerankOutput = {
   reasoning: string;
 };
 
+const FOOD_TYPES = new Set([
+  "restaurant", "food", "bakery", "cafe", "bar", "meal_delivery",
+  "meal_takeaway", "ice_cream_shop", "coffee_shop", "fast_food_restaurant",
+]);
+
 function fallbackScore(c: RerankInput): RerankOutput {
-  // No LLM available → use a sweet-spot heuristic so ranking degrades gracefully.
   const rating = c.rating ?? 0;
   const reviews = c.review_count ?? 0;
-  let score = rating * 1.5; // 0..7.5 for 0..5 star rating
+  let score = rating * 1.2;
   if (reviews >= 50 && reviews <= 2000) score += 1.5;
   if (rating >= 4.3 && rating <= 4.8) score += 1;
+  const isFood = c.types.some((t) => FOOD_TYPES.has(t));
+  if (!isFood) score += 3;
   return {
     id: c.id,
     score: Math.max(0, Math.min(10, score)),
@@ -40,18 +46,26 @@ export async function rerankPlaces(
   if (candidates.length === 0) return [];
   if (!GEMINI_KEY) return candidates.map(fallbackScore);
 
-  const prompt = `You are ranking road-trip candidate places by editorial cred — likelihood of appearing on local food blogs, "best of" lists, or in-the-know recommendations.
+  const prompt = `You are ranking road-trip stops by how "worth the detour" they are — the kind of places a local would insist you visit, not what shows up first on Google.
 
 For each place, return a score 0-10 and a one-sentence reason.
 
-Reward signals:
-- Independent operators (not chains)
-- "Hidden gem", "local favorite", "best in town" mentions in reviews
-- Sweet-spot ratings 4.3-4.8 with hundreds of real reviews
+Strong reward signals (score 7-10):
+- Hidden gems, local legends, one-of-a-kind spots
+- Unique outdoor/activity/cultural experiences you can't get elsewhere
+- Independent operators with a loyal following
+- "Only in this town" character — quirky museums, roadside oddities, legendary local spots
+- Reviews mentioning "hidden gem", "local favorite", "don't miss", "worth the drive"
+- Sweet-spot ratings 4.3-4.8 with real reviews (not inflated)
 
-Penalize:
-- Generic chains (Panda Express, McDonald's, Olive Garden, etc.)
+Moderate reward (4-6):
+- Solid independent restaurants or cafés with strong local reputation
+- Well-known parks, trails, or scenic spots
+
+Penalize (0-3):
+- Generic chains of any kind (fast food, coffee, retail)
 - Tourist traps with shallow praise
+- Any restaurant that isn't locally iconic or notable — a random pizza place is a 1, a legendary regional BBQ joint is a 7
 - Suspiciously perfect 5.0 with very few reviewers
 
 Here are the candidates:

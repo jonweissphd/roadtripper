@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { fetchPlacePhotoUrl } from "@/lib/google/places";
 import { createClient } from "@/lib/supabase/server";
 
@@ -6,9 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 // Keeps GOOGLE_MAPS_SERVER_KEY off the wire and lets browsers cache the redirect briefly.
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser(supabase);
   if (!user) {
     return new NextResponse("unauthorized", { status: 401 });
   }
