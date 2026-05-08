@@ -255,6 +255,27 @@ export default async function TripDetailPage({
           </section>
         )}
 
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/trips/new"
+            className="rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            + New trip
+          </Link>
+          <Link
+            href="/explore/new"
+            className="rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            + Explore area
+          </Link>
+          <Link
+            href="/profile"
+            className="rounded-full border border-border bg-background px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+          >
+            Edit interests
+          </Link>
+        </div>
+
         <section className="space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
             <div className="space-y-1">
