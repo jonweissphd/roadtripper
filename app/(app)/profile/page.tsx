@@ -128,7 +128,7 @@ export default async function ProfilePage({
           </Button>
           {canStartTrip && (
             <Link
-              href="#start"
+              href="/trips/new"
               className={buttonVariants({
                 size: "lg",
                 className: "text-[0.9375rem]",
