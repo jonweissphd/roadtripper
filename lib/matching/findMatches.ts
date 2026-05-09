@@ -118,6 +118,16 @@ export async function findMatches(
   const endIdx = Math.ceil(end * allSamples.length);
   const samples = allSamples.slice(startIdx, endIdx);
 
+  // Slice the polyline to the requested range so corridor filtering only
+  // considers the relevant section (prevents early-route places leaking into
+  // "Late" results and vice versa).
+  const polyStartIdx = Math.floor(start * polyline.length);
+  const polyEndIdx = Math.ceil(end * polyline.length);
+  const corridorPolyline =
+    start === 0 && end === 1
+      ? polyline
+      : polyline.slice(polyStartIdx, Math.max(polyEndIdx, polyStartIdx + 2));
+
   // 3. Discovery: searchText for each (interest keyword × sample).
   // Track which interest slugs each place hits.
   const placeMatches = new Map<string, Set<string>>();
@@ -186,7 +196,7 @@ export async function findMatches(
       lat: details.location.latitude,
       lng: details.location.longitude,
     };
-    if (perpDistanceMeters(point, polyline) > CORRIDOR_RADIUS_M) continue;
+    if (perpDistanceMeters(point, corridorPolyline) > CORRIDOR_RADIUS_M) continue;
 
     const reviews = details.reviews ?? [];
     const photos = details.photos ?? [];
