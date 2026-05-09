@@ -12,6 +12,7 @@ import {
   samplePoints,
   type LatLng,
 } from "@/lib/google/polyline";
+import { isClosedNow, isKnownChain } from "./filters";
 import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
@@ -192,6 +193,11 @@ export async function findMatches(
   const candidates: Candidate[] = [];
   for (const { id, details } of detailsResults) {
     if (!details?.location) continue;
+    const name = details.displayName?.text ?? "Unnamed place";
+    // Hard-filter: skip known chains and currently-closed places.
+    if (isKnownChain(name)) continue;
+    if (isClosedNow(details)) continue;
+
     const point: LatLng = {
       lat: details.location.latitude,
       lng: details.location.longitude,
