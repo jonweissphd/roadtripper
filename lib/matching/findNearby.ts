@@ -217,7 +217,13 @@ export async function findNearby(
     return a.distance_meters - b.distance_meters;
   });
 
-  const foodCap = Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP);
+  // Dynamic food cap: if most results are food/drink, allow more through.
+  const foodResultCount = sorted.filter((r) => isFoodOrDrink(r.raw.types ?? [])).length;
+  const foodRatio = sorted.length > 0 ? foodResultCount / sorted.length : 0;
+  const foodCap = Math.max(
+    Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP),
+    Math.floor(MAX_DISPLAY * Math.min(foodRatio, 0.6)),
+  );
   const matches: NearbyResult[] = [];
   const seenNames = new Set<string>();
   let foodCount = 0;
