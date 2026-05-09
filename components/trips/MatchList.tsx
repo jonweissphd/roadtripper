@@ -234,6 +234,15 @@ export function MatchList({
                             >
                               {isExplore ? "~" : "+"}{Math.round(m.detour_seconds / 60)} min{isExplore ? " away" : ""}
                             </div>
+                            <a
+                              href={`https://www.google.com/maps/place/?q=place_id:${m.google_place_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-block pt-1 text-[0.6875rem] font-medium text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+                            >
+                              Save in Maps
+                            </a>
                           </div>
                         </div>
                       </div>
