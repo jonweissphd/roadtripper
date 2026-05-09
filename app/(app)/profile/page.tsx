@@ -11,7 +11,7 @@ import {
 } from "@/components/interests/InterestPicker";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { saveProfile } from "./actions";
+import { autoSaveInterests, saveProfile } from "./actions";
 
 const MIN_INTERESTS_FOR_TRIP = 5;
 
@@ -108,7 +108,7 @@ export default async function ProfilePage({
               your travel buddy&apos;s.
             </p>
           </div>
-          <InterestPicker groups={groups} initial={selectedIds} />
+          <InterestPicker groups={groups} initial={selectedIds} onAutoSave={autoSaveInterests} />
         </section>
 
         <section className="rounded-xl border border-border/70 bg-card p-5">

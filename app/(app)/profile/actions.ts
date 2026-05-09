@@ -48,3 +48,20 @@ export async function saveProfile(formData: FormData) {
   revalidatePath("/profile");
   redirect("/profile?saved=1");
 }
+
+/** Auto-save just the interest selections (called on each toggle). */
+export async function autoSaveInterests(interestIds: string[]) {
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+  if (!user) return;
+
+  await supabase.from("profile_interests").delete().eq("profile_id", user.id);
+
+  if (interestIds.length > 0) {
+    const rows = interestIds.map((interest_id) => ({
+      profile_id: user.id,
+      interest_id,
+    }));
+    await supabase.from("profile_interests").insert(rows);
+  }
+}

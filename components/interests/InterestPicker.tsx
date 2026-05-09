@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export type Interest = {
@@ -22,6 +22,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   outdoor: "Outdoor",
   activities: "Activities",
   quirky: "Quirky stops",
+  nightlife: "Nightlife",
+  fitness: "Fitness",
+  culture: "Culture",
+  animals: "Animals",
 };
 
 const MIN_FOR_TRIP = 5;
@@ -29,20 +33,56 @@ const MIN_FOR_TRIP = 5;
 export function InterestPicker({
   groups,
   initial,
+  onAutoSave,
 }: {
   groups: InterestGroup[];
   initial: string[];
+  onAutoSave?: (ids: string[]) => Promise<void>;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set(initial));
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pendingRef = useRef<Set<string>>(new Set(initial));
+
+  const doSave = useCallback(async () => {
+    if (!onAutoSave) return;
+    const ids = [...pendingRef.current];
+    setSaving(true);
+    setLastSaved(false);
+    try {
+      await onAutoSave(ids);
+      setLastSaved(true);
+      setTimeout(() => setLastSaved(false), 2000);
+    } catch {
+      // Silently fail — user can still manually save via the form
+    } finally {
+      setSaving(false);
+    }
+  }, [onAutoSave]);
 
   function toggle(id: string) {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      pendingRef.current = next;
       return next;
     });
+
+    // Debounce auto-save: wait 1s after last toggle
+    if (onAutoSave) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(doSave, 1000);
+    }
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const remaining = Math.max(0, MIN_FOR_TRIP - selected.size);
   const ready = remaining === 0;
@@ -65,7 +105,11 @@ export function InterestPicker({
           {selected.size}
         </span>
         <p className="text-sm text-muted-foreground">
-          {ready ? (
+          {saving ? (
+            <span className="text-muted-foreground">Saving...</span>
+          ) : lastSaved ? (
+            <span className="font-medium text-primary">Saved!</span>
+          ) : ready ? (
             <>
               <span className="font-medium text-foreground">
                 You&apos;re ready
