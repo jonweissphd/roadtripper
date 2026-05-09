@@ -30,13 +30,8 @@ export async function GET(request: Request) {
           input,
           includedPrimaryTypes: [
             "locality",
-            "sublocality",
             "postal_code",
-            "administrative_area_level_1",
-            "administrative_area_level_2",
             "street_address",
-            "route",
-            "premise",
             "airport",
             "neighborhood",
           ],
