@@ -43,7 +43,12 @@ export function FindMatchesButton({
         reason?: string;
       };
       if (!res.ok) {
-        throw new Error(data.error ?? "Failed to compute matches");
+        if (res.status === 504) {
+          throw new Error(
+            "Search timed out — this can happen on the free hosting tier. Try again or run locally.",
+          );
+        }
+        throw new Error(data.error ?? `Failed to compute matches (${res.status})`);
       }
       router.refresh();
     } catch (err) {
