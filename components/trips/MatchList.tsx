@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+
+const INITIAL_SHOW = 8;
+const LOAD_MORE = 10;
 
 export type MatchRow = {
   google_place_id: string;
@@ -91,11 +94,27 @@ export function MatchList({
   for (const b of BUCKETS) grouped[b.label] = [];
   for (const m of matches) grouped[bucketFor(m.detour_seconds, BUCKETS)].push(m);
 
+  // Track how many items to show per bucket.
+  const [showCounts, setShowCounts] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const b of BUCKETS) init[b.label] = INITIAL_SHOW;
+    return init;
+  });
+
+  function showMore(bucket: string) {
+    setShowCounts((prev) => ({
+      ...prev,
+      [bucket]: (prev[bucket] ?? INITIAL_SHOW) + LOAD_MORE,
+    }));
+  }
+
   return (
     <div className="space-y-9">
       {BUCKETS.map(({ label, emoji, subtitle }) => {
         const items = grouped[label];
         if (items.length === 0) return null;
+        const visible = items.slice(0, showCounts[label] ?? INITIAL_SHOW);
+        const hasMore = visible.length < items.length;
         return (
           <section key={label} className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
@@ -113,9 +132,9 @@ export function MatchList({
               </span>
             </div>
             <ul className="-mx-2 sm:mx-0">
-              {items.map((m, i) => {
+              {visible.map((m, i) => {
                 const isSelected = selectedId === m.google_place_id;
-                const isLast = i === items.length - 1;
+                const isLast = i === visible.length - 1 && !hasMore;
                 return (
                   <li
                     key={m.google_place_id}
@@ -224,6 +243,15 @@ export function MatchList({
                 );
               })}
             </ul>
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => showMore(label)}
+                className="w-full rounded-lg border border-border bg-background py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+              >
+                Show {Math.min(LOAD_MORE, items.length - visible.length)} more
+              </button>
+            )}
           </section>
         );
       })}

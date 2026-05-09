@@ -15,12 +15,12 @@ import {
 import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
-const SAMPLE_RADIUS_M = 12 * MILES_TO_METERS;
+const SAMPLE_RADIUS_M = 15 * MILES_TO_METERS;
 const SAMPLE_SPACING_M = 13 * MILES_TO_METERS;
-const MAX_SAMPLES = 20;
-const CORRIDOR_RADIUS_M = 10 * MILES_TO_METERS;
-const MAX_CANDIDATES_FOR_DETOUR = 50;
-const MAX_DISPLAY = 30;
+const MAX_SAMPLES = 25;
+const CORRIDOR_RADIUS_M = 12 * MILES_TO_METERS;
+const MAX_CANDIDATES_FOR_DETOUR = 80;
+const MAX_DISPLAY = 50;
 const FOOD_DRINK_CAP = 0.2;
 
 const FOOD_DRINK_TYPES = new Set([

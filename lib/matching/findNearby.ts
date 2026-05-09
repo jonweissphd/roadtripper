@@ -8,10 +8,10 @@ import { haversineMeters, type LatLng } from "@/lib/google/polyline";
 import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
-const SEARCH_RADIUS_M = 8 * MILES_TO_METERS;
+const SEARCH_RADIUS_M = 15 * MILES_TO_METERS;
 const MAX_DISTANCE_M = 30 * MILES_TO_METERS; // Hard cutoff: drop anything 30+ miles away
-const MAX_CANDIDATES = 50;
-const MAX_DISPLAY = 30;
+const MAX_CANDIDATES = 80;
+const MAX_DISPLAY = 50;
 const FOOD_DRINK_CAP = 0.2;
 
 const FOOD_DRINK_TYPES = new Set([
