@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { signInAsGuest } from "@/app/(auth)/actions";
 
 export default function Home() {
   return (
@@ -38,6 +39,14 @@ export default function Home() {
             I have an account
           </Link>
         </div>
+        <form action={signInAsGuest}>
+          <button
+            type="submit"
+            className="text-sm font-medium text-muted-foreground underline decoration-muted-foreground/30 underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground/50"
+          >
+            Continue as guest
+          </button>
+        </form>
         <p className="text-sm text-muted-foreground/70">
           Free to use. No credit card needed.
         </p>
