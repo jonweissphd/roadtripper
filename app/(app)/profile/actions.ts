@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function saveProfile(formData: FormData) {
   const display_name = String(formData.get("display_name") ?? "").trim();
+  const locals_only = formData.get("locals_only") === "1";
   const interest_ids = formData
     .getAll("interest_id")
     .map((v) => String(v))
@@ -22,7 +23,7 @@ export async function saveProfile(formData: FormData) {
 
   const { error: profileError } = await supabase
     .from("profiles")
-    .upsert({ id: user.id, display_name }, { onConflict: "id" });
+    .upsert({ id: user.id, display_name, locals_only }, { onConflict: "id" });
 
   if (profileError) {
     redirect(`/profile?error=${encodeURIComponent(profileError.message)}`);

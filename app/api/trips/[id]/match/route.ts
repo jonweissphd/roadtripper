@@ -46,6 +46,24 @@ export async function POST(
 
   const isExplore = trip.trip_type === "explore";
 
+  // Check if any traveler wants locals-only.
+  const [creatorProfileRes, guestProfileRes] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("locals_only")
+      .eq("id", trip.creator_id)
+      .maybeSingle(),
+    trip.guest_id
+      ? supabase
+          .from("profiles")
+          .select("locals_only")
+          .eq("id", trip.guest_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const localsOnly =
+    creatorProfileRes.data?.locals_only || guestProfileRes.data?.locals_only || false;
+
   // Union of interests across whoever is on the trip.
   const [creatorRes, guestRes] = await Promise.all([
     supabase
@@ -119,6 +137,7 @@ export async function POST(
     const nearby = await findNearby(
       { lat: trip.origin_lat, lng: trip.origin_lng },
       weighted,
+      localsOnly,
     );
     matchRows = nearby.map((n) => ({
       place_id: n.place_id,
@@ -142,6 +161,7 @@ export async function POST(
       { lat: trip.dest_lat, lng: trip.dest_lng },
       weighted,
       routeRange,
+      localsOnly,
     );
     encodedPolyline = result.encodedPolyline;
     matchRows = result.matches.map((m) => ({

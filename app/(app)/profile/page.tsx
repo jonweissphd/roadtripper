@@ -41,7 +41,7 @@ export default async function ProfilePage({
   const [profileRes, interestsRes, selectionsRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("display_name")
+      .select("display_name, locals_only")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -109,6 +109,27 @@ export default async function ProfilePage({
             </p>
           </div>
           <InterestPicker groups={groups} initial={selectedIds} />
+        </section>
+
+        <section className="rounded-xl border border-border/70 bg-card p-5">
+          <label className="flex cursor-pointer items-start gap-4">
+            <input
+              type="checkbox"
+              name="locals_only"
+              value="1"
+              defaultChecked={profile?.locals_only ?? false}
+              className="mt-0.5 size-5 rounded border-border accent-primary"
+            />
+            <div className="space-y-1">
+              <span className="text-sm font-semibold tracking-tight">
+                Locals only
+              </span>
+              <p className="text-sm text-muted-foreground">
+                Skip the chains. Only show local, independent, mom &amp; pop
+                spots — the places that make a town special.
+              </p>
+            </div>
+          </label>
         </section>
 
         {error && (

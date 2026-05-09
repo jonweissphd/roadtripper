@@ -56,6 +56,7 @@ export type NearbyResult = {
 export async function findNearby(
   center: LatLng,
   sharedInterests: SharedInterest[],
+  localsOnly = false,
 ): Promise<NearbyResult[]> {
   if (sharedInterests.length === 0) return [];
 
@@ -165,11 +166,19 @@ export async function findNearby(
     types: c.types,
   }));
 
-  const rerankResults = await rerankPlaces(rerankInput);
+  const rerankResults = await rerankPlaces(rerankInput, localsOnly);
   const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
 
-  // 5. Assemble + sort with diversity cap.
-  const results: NearbyResult[] = candidates.map((c) => {
+  // 5. Filter chains when locals-only is on, then assemble + sort.
+  const filtered = localsOnly
+    ? candidates.filter((c) => {
+        const rerank = rerankById.get(c.id);
+        // Drop anything Gemini scored 2 or below (likely a chain).
+        if (rerank && rerank.score <= 2) return false;
+        return true;
+      })
+    : candidates;
+  const results: NearbyResult[] = filtered.map((c) => {
     const matchedSlugs = [...(placeMatches.get(c.id) ?? [])];
     const rerank = rerankById.get(c.id);
     const matchScore = matchedSlugs.reduce(

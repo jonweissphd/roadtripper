@@ -25,7 +25,7 @@ const FOOD_TYPES = new Set([
   "meal_takeaway", "ice_cream_shop", "coffee_shop", "fast_food_restaurant",
 ]);
 
-function fallbackScore(c: RerankInput): RerankOutput {
+function fallbackScore(c: RerankInput, localsOnly = false): RerankOutput {
   const rating = c.rating ?? 0;
   const reviews = c.review_count ?? 0;
   let score = rating * 1.2;
@@ -33,21 +33,33 @@ function fallbackScore(c: RerankInput): RerankOutput {
   if (rating >= 4.3 && rating <= 4.8) score += 1;
   const isFood = c.types.some((t) => FOOD_TYPES.has(t));
   if (!isFood) score += 3;
+  // Penalize likely chains when locals-only is on.
+  if (localsOnly && reviews > 3000) score -= 5;
   return {
     id: c.id,
     score: Math.max(0, Math.min(10, score)),
-    reasoning: "Heuristic fallback (Gemini unavailable)",
+    reasoning: localsOnly && reviews > 3000
+      ? "Likely chain (high review count)"
+      : "Heuristic fallback (Gemini unavailable)",
   };
 }
 
 export async function rerankPlaces(
   candidates: RerankInput[],
+  localsOnly = false,
 ): Promise<RerankOutput[]> {
   if (candidates.length === 0) return [];
-  if (!GEMINI_KEY) return candidates.map(fallbackScore);
+  if (!GEMINI_KEY) return candidates.map((c) => fallbackScore(c, localsOnly));
+
+  const localsOnlyBlock = localsOnly
+    ? `
+CRITICAL — LOCALS ONLY MODE IS ON:
+The user ONLY wants independent, locally-owned, mom & pop businesses. Score ANY chain or franchise a 0. This includes national and regional chains of any kind — fast food, coffee, retail, hotels, gas stations, etc. If a place has locations in multiple cities, it's a chain. Be aggressive about filtering these out. Only true one-of-a-kind local spots should score above 3.
+`
+    : "";
 
   const prompt = `You are ranking road-trip stops by how "worth the detour" they are — the kind of places a local would insist you visit, not what shows up first on Google.
-
+${localsOnlyBlock}
 For each place, return a score 0-10 and a one-sentence reason.
 
 Strong reward signals (score 7-10):
@@ -108,14 +120,14 @@ ${JSON.stringify(candidates, null, 2)}`;
     if (!response.ok) {
       const text = await response.text();
       console.error("Gemini rerank error", response.status, text);
-      return candidates.map(fallbackScore);
+      return candidates.map((c) => fallbackScore(c, localsOnly));
     }
 
     const data = (await response.json()) as {
       candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     };
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return candidates.map(fallbackScore);
+    if (!text) return candidates.map((c) => fallbackScore(c, localsOnly));
 
     const parsed = JSON.parse(text) as { results?: RerankOutput[] };
     const results = parsed.results ?? [];
@@ -123,10 +135,10 @@ ${JSON.stringify(candidates, null, 2)}`;
     // Make sure every candidate has an entry — fall back per-id if missing.
     const byId = new Map(results.map((r) => [r.id, r]));
     return candidates.map(
-      (c) => byId.get(c.id) ?? fallbackScore(c),
+      (c) => byId.get(c.id) ?? fallbackScore(c, localsOnly),
     );
   } catch (err) {
     console.error("Gemini rerank threw", err);
-    return candidates.map(fallbackScore);
+    return candidates.map((c) => fallbackScore(c, localsOnly));
   }
 }

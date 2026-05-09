@@ -95,6 +95,7 @@ export async function findMatches(
   destination: LatLng,
   sharedInterests: SharedInterest[],
   routeRange?: { start: number; end: number },
+  localsOnly = false,
 ): Promise<MatchComputeResult> {
   if (sharedInterests.length === 0) {
     return { matches: [], encodedPolyline: null };
@@ -231,15 +232,26 @@ export async function findMatches(
     types: c.types,
   }));
 
-  const rerankResults = await rerankPlaces(rerankInput);
+  const rerankResults = await rerankPlaces(rerankInput, localsOnly);
   const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
 
-  // 8. Assemble + final sort.
+  // 8. Filter chains when locals-only is on, then assemble + sort.
+  const filtered = localsOnly
+    ? candidates.filter((c) => {
+        const rerank = rerankById.get(c.id);
+        if (rerank && rerank.score <= 2) return false;
+        return true;
+      })
+    : candidates;
+
+  // Build a detour lookup so we can map filtered candidates back to their detour times.
+  const detourById = new Map(candidates.map((c, i) => [c.id, detours[i]]));
+
   // shared_tags_count is repurposed as the weighted match score: each matched
   // tag contributes its weight (1 for one user, 2 for both). Solo trips
   // collapse to "count of my matched tags". Paired trips elevate places that
   // hit tags both travelers picked.
-  const results: MatchResult[] = candidates.map((c, i) => {
+  const results: MatchResult[] = filtered.map((c) => {
     const matchedSlugs = [...(placeMatches.get(c.id) ?? [])];
     const rerank = rerankById.get(c.id);
     const matchScore = matchedSlugs.reduce(
@@ -257,7 +269,7 @@ export async function findMatches(
       primary_photo_id: c.primary_photo_id,
       matched_interests: matchedSlugs,
       shared_tags_count: matchScore,
-      detour_seconds: detours[i],
+      detour_seconds: detourById.get(c.id) ?? Infinity,
       editorial_score: rerank?.score,
       editorial_reasoning: rerank?.reasoning,
       raw: c.raw,
