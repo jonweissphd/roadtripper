@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "../actions";
+import { signIn, signInAsGuest } from "../actions";
 
 export default async function LoginPage({
   searchParams,
@@ -51,6 +51,24 @@ export default async function LoginPage({
         )}
         <Button type="submit" size="lg" className="w-full">
           Log in
+        </Button>
+      </form>
+
+      <div className="relative flex items-center gap-4">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-medium text-muted-foreground">or</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      <form action={signInAsGuest}>
+        {next && <input type="hidden" name="next" value={next} />}
+        <Button
+          type="submit"
+          variant="outline"
+          size="lg"
+          className="w-full"
+        >
+          Continue as guest
         </Button>
       </form>
 

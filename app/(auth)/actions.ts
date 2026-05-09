@@ -58,6 +58,21 @@ export async function signUp(formData: FormData) {
   redirect(`/signup/check-email?${params.toString()}`);
 }
 
+export async function signInAsGuest(formData: FormData) {
+  const next = safeNext(formData.get("next"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInAnonymously();
+
+  if (error) {
+    const params = new URLSearchParams({ error: error.message });
+    if (next !== "/profile") params.set("next", next);
+    redirect(`/login?${params.toString()}`);
+  }
+
+  redirect(next);
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
