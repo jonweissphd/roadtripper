@@ -15,6 +15,7 @@ export function TripContent({
   encodedPolyline,
   matches,
   interestLabels,
+  categoryBySlug,
   isExplore = false,
 }: {
   tripId: string;
@@ -25,6 +26,7 @@ export function TripContent({
   encodedPolyline: string | null;
   matches: MatchRow[];
   interestLabels: Record<string, string>;
+  categoryBySlug: Record<string, string>;
   isExplore?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export function TripContent({
         tripId={tripId}
         matches={matches}
         interestLabels={interestLabels}
+        categoryBySlug={categoryBySlug}
         selectedId={selectedId}
         onHover={setSelectedId}
         checkedIds={checkedIds}

@@ -94,6 +94,9 @@ export default async function TripDetailPage({
   const interestLabels: Record<string, string> = Object.fromEntries(
     allInterests.map((i) => [i.slug, i.label]),
   );
+  const categoryBySlug: Record<string, string> = Object.fromEntries(
+    allInterests.map((i) => [i.slug, i.category]),
+  );
   const slugById: Record<string, string> = Object.fromEntries(
     allInterests.map((i) => [i.id, i.slug]),
   );
@@ -144,7 +147,7 @@ export default async function TripDetailPage({
   const inviteUrl = `${appUrl}/join/${trip.invite_token}`;
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-10 sm:py-14">
+    <main className="mx-auto w-full max-w-5xl px-6 py-10 sm:py-14">
       <header className="space-y-2 pb-8">
         <Eyebrow>{isExplore ? "Exploring" : "Your trip"}</Eyebrow>
         {isExplore ? (
@@ -333,6 +336,7 @@ export default async function TripDetailPage({
               encodedPolyline={trip.route_polyline}
               matches={matches}
               interestLabels={interestLabels}
+              categoryBySlug={categoryBySlug}
               isExplore={isExplore}
             />
           ) : (
