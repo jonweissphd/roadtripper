@@ -174,12 +174,13 @@ export async function POST(
 
   const { data: interests } = await supabase
     .from("interests")
-    .select("id, slug, search_keywords")
+    .select("id, slug, search_keywords, category")
     .in("id", [...allIds]);
 
   const weighted = (interests ?? []).map((i) => ({
     slug: i.slug,
     search_keywords: i.search_keywords,
+    category: i.category,
     weight:
       (creatorIds.has(i.id) ? 1 : 0) + (guestIds.has(i.id) ? 1 : 0),
   }));

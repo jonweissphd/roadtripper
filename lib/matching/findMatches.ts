@@ -22,7 +22,6 @@ const MAX_SAMPLES = 25;
 const CORRIDOR_RADIUS_M = 12 * MILES_TO_METERS;
 const MAX_CANDIDATES_FOR_DETOUR = 50;
 const MAX_DISPLAY = 50;
-const FOOD_DRINK_CAP = 0.2;
 /** Max keywords to search per interest. Keeps API call count manageable. */
 const MAX_KEYWORDS_PER_INTEREST = 2;
 
@@ -77,6 +76,7 @@ function isFoodOrDrink(types: string[]): boolean {
 export type SharedInterest = {
   slug: string;
   search_keywords: string[];
+  category: string;
   // 2 if both travelers picked this tag, 1 if only one (or solo). Drives ranking.
   weight: number;
 };
@@ -323,27 +323,66 @@ export async function findMatches(
       return a.detour_seconds - b.detour_seconds;
     });
 
-  // Dynamic food cap: if most matched interests are food/drink, allow more.
-  // Count how many results matched food-type interests vs total.
-  const foodResultCount = sorted.filter((r) => isFoodOrDrink(r.raw.types ?? [])).length;
-  const foodRatio = sorted.length > 0 ? foodResultCount / sorted.length : 0;
-  const foodCap = Math.max(
-    Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP),
-    Math.floor(MAX_DISPLAY * Math.min(foodRatio, 0.6)), // Never more than 60%
+  // Build slug→category lookup from the interests we searched for.
+  const categoryForSlug = new Map(
+    sharedInterests.map((i) => [i.slug, i.category]),
   );
-  const matches: MatchResult[] = [];
+
+  // Deduplicate by name first.
+  const deduped: MatchResult[] = [];
   const seenNames = new Set<string>();
-  let foodCount = 0;
   for (const r of sorted) {
-    if (matches.length >= MAX_DISPLAY) break;
-    // Deduplicate chains — keep only the best-scored location of each name.
     const normName = r.name.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (seenNames.has(normName)) continue;
     seenNames.add(normName);
-    const isFood = isFoodOrDrink(r.raw.types ?? []);
-    if (isFood && foodCount >= foodCap) continue;
-    matches.push(r);
-    if (isFood) foodCount++;
+    deduped.push(r);
+  }
+
+  // Category-balanced round-robin: ensure every category gets fair slots.
+  const byCat = new Map<string, MatchResult[]>();
+  for (const r of deduped) {
+    const cat = categoryForSlug.get(r.matched_interests[0]) ?? "other";
+    if (!byCat.has(cat)) byCat.set(cat, []);
+    byCat.get(cat)!.push(r);
+  }
+  const categories = [...byCat.keys()];
+  const minPerCat = Math.max(3, Math.floor(MAX_DISPLAY / categories.length));
+  const matches: MatchResult[] = [];
+  const catIdx = new Map<string, number>();
+  for (const cat of categories) catIdx.set(cat, 0);
+
+  // Phase 1: guarantee each category gets at least minPerCat results.
+  for (const cat of categories) {
+    const items = byCat.get(cat)!;
+    const take = Math.min(minPerCat, items.length);
+    for (let i = 0; i < take && matches.length < MAX_DISPLAY; i++) {
+      matches.push(items[i]);
+    }
+    catIdx.set(cat, take);
+  }
+
+  // Phase 2: fill remaining slots with the best remaining results (any category).
+  if (matches.length < MAX_DISPLAY) {
+    const remaining: MatchResult[] = [];
+    for (const cat of categories) {
+      const items = byCat.get(cat)!;
+      remaining.push(...items.slice(catIdx.get(cat)!));
+    }
+    // Sort remaining by the original ranking criteria.
+    remaining.sort((a, b) => {
+      if (b.shared_tags_count !== a.shared_tags_count)
+        return b.shared_tags_count - a.shared_tags_count;
+      const ae = a.editorial_score ?? 0;
+      const be = b.editorial_score ?? 0;
+      if (be !== ae) return be - ae;
+      return a.detour_seconds - b.detour_seconds;
+    });
+    const matchedIds = new Set(matches.map((m) => m.place_id));
+    for (const r of remaining) {
+      if (matches.length >= MAX_DISPLAY) break;
+      if (matchedIds.has(r.place_id)) continue;
+      matches.push(r);
+    }
   }
 
   return { matches, encodedPolyline: route.encodedPolyline };

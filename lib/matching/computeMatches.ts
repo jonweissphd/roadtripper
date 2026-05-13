@@ -17,6 +17,7 @@ export type ComputeParams = {
   weighted: Array<{
     slug: string;
     search_keywords: string[];
+    category: string;
     weight: number;
   }>;
   routeRange?: { start: number; end: number };

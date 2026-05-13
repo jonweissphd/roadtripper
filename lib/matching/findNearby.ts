@@ -13,7 +13,6 @@ const SEARCH_RADIUS_M = 15 * MILES_TO_METERS;
 const MAX_DISTANCE_M = 30 * MILES_TO_METERS; // Hard cutoff: drop anything 30+ miles away
 const MAX_CANDIDATES = 50;
 const MAX_DISPLAY = 50;
-const FOOD_DRINK_CAP = 0.2;
 
 /** Max keywords to search per interest. Keeps API call count manageable. */
 const MAX_KEYWORDS_PER_INTEREST = 2;
@@ -47,6 +46,7 @@ function isFoodOrDrink(types: string[]): boolean {
 export type SharedInterest = {
   slug: string;
   search_keywords: string[];
+  category: string;
   weight: number;
 };
 
@@ -238,26 +238,65 @@ export async function findNearby(
     return a.distance_meters - b.distance_meters;
   });
 
-  // Dynamic food cap: if most results are food/drink, allow more through.
-  const foodResultCount = sorted.filter((r) => isFoodOrDrink(r.raw.types ?? [])).length;
-  const foodRatio = sorted.length > 0 ? foodResultCount / sorted.length : 0;
-  const foodCap = Math.max(
-    Math.floor(MAX_DISPLAY * FOOD_DRINK_CAP),
-    Math.floor(MAX_DISPLAY * Math.min(foodRatio, 0.6)),
+  // Build slug→category lookup from the interests we searched for.
+  const categoryForSlug = new Map(
+    sharedInterests.map((i) => [i.slug, i.category]),
   );
-  const matches: NearbyResult[] = [];
+
+  // Deduplicate by name first.
+  const deduped: NearbyResult[] = [];
   const seenNames = new Set<string>();
-  let foodCount = 0;
   for (const r of sorted) {
-    if (matches.length >= MAX_DISPLAY) break;
-    // Deduplicate chains — keep only the closest location of each name.
     const normName = r.name.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (seenNames.has(normName)) continue;
     seenNames.add(normName);
-    const isFood = isFoodOrDrink(r.raw.types ?? []);
-    if (isFood && foodCount >= foodCap) continue;
-    matches.push(r);
-    if (isFood) foodCount++;
+    deduped.push(r);
+  }
+
+  // Category-balanced round-robin: ensure every category gets fair slots.
+  const byCat = new Map<string, NearbyResult[]>();
+  for (const r of deduped) {
+    const cat = categoryForSlug.get(r.matched_interests[0]) ?? "other";
+    if (!byCat.has(cat)) byCat.set(cat, []);
+    byCat.get(cat)!.push(r);
+  }
+  const categories = [...byCat.keys()];
+  const minPerCat = Math.max(3, Math.floor(MAX_DISPLAY / categories.length));
+  const matches: NearbyResult[] = [];
+  const catIdx = new Map<string, number>();
+  for (const cat of categories) catIdx.set(cat, 0);
+
+  // Phase 1: guarantee each category gets at least minPerCat results.
+  for (const cat of categories) {
+    const items = byCat.get(cat)!;
+    const take = Math.min(minPerCat, items.length);
+    for (let i = 0; i < take && matches.length < MAX_DISPLAY; i++) {
+      matches.push(items[i]);
+    }
+    catIdx.set(cat, take);
+  }
+
+  // Phase 2: fill remaining slots with the best remaining results (any category).
+  if (matches.length < MAX_DISPLAY) {
+    const remaining: NearbyResult[] = [];
+    for (const cat of categories) {
+      const items = byCat.get(cat)!;
+      remaining.push(...items.slice(catIdx.get(cat)!));
+    }
+    remaining.sort((a, b) => {
+      if (b.shared_tags_count !== a.shared_tags_count)
+        return b.shared_tags_count - a.shared_tags_count;
+      const ae = a.editorial_score ?? 0;
+      const be = b.editorial_score ?? 0;
+      if (be !== ae) return be - ae;
+      return a.distance_meters - b.distance_meters;
+    });
+    const matchedIds = new Set(matches.map((m) => m.place_id));
+    for (const r of remaining) {
+      if (matches.length >= MAX_DISPLAY) break;
+      if (matchedIds.has(r.place_id)) continue;
+      matches.push(r);
+    }
   }
 
   return matches;
