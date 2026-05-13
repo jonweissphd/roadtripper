@@ -1,6 +1,6 @@
 import "server-only";
 import {
-  fetchPlaceDetails,
+  fetchPlaceDetailsBatch,
   searchTextNearbyIds,
   type PlaceDetails,
 } from "@/lib/google/places";
@@ -99,12 +99,11 @@ export async function findNearby(
     .slice(0, MAX_CANDIDATES)
     .map(([id]) => id);
 
-  const detailsResults = await Promise.all(
-    sortedIds.map(async (id) => ({
-      id,
-      details: await fetchPlaceDetails(id),
-    })),
-  );
+  const detailsMap = await fetchPlaceDetailsBatch(sortedIds);
+  const detailsResults = sortedIds.map((id) => ({
+    id,
+    details: detailsMap.get(id) ?? null,
+  }));
 
   // 3. Build candidates with distance from center.
   type Candidate = {

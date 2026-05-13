@@ -1,7 +1,11 @@
 import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { LatLng } from "./polyline";
 
 const SERVER_KEY = process.env.GOOGLE_MAPS_SERVER_KEY;
+
+/** Cache TTL: 14 days. */
+const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 
 // Pass 1: cheap discovery — IDs only.
 export async function searchTextNearbyIds(
@@ -82,8 +86,8 @@ const DETAIL_FIELDS = [
   "googleMapsUri",
 ].join(",");
 
-// Pass 2: full details for a place.
-export async function fetchPlaceDetails(
+/** Fetch from Google Places API directly (no cache). */
+async function fetchPlaceDetailsFromGoogle(
   placeId: string,
 ): Promise<PlaceDetails | null> {
   if (!SERVER_KEY) throw new Error("GOOGLE_MAPS_SERVER_KEY is not set");
@@ -104,6 +108,114 @@ export async function fetchPlaceDetails(
   }
 
   return (await response.json()) as PlaceDetails;
+}
+
+/**
+ * Pass 2: full details for a single place (cache-aware).
+ * Checks Supabase cache first, falls back to Google API.
+ */
+export async function fetchPlaceDetails(
+  placeId: string,
+): Promise<PlaceDetails | null> {
+  const admin = createAdminClient();
+  const { data: cached } = await admin
+    .from("place_details_cache")
+    .select("details, fetched_at")
+    .eq("google_place_id", placeId)
+    .maybeSingle();
+
+  if (cached) {
+    const age = Date.now() - new Date(cached.fetched_at).getTime();
+    if (age < CACHE_TTL_MS) {
+      return cached.details as PlaceDetails;
+    }
+  }
+
+  const details = await fetchPlaceDetailsFromGoogle(placeId);
+  if (!details) return null;
+
+  // Upsert into cache (fire-and-forget).
+  admin
+    .from("place_details_cache")
+    .upsert({
+      google_place_id: placeId,
+      details: details as unknown as Record<string, unknown>,
+      fetched_at: new Date().toISOString(),
+    })
+    .then(({ error }) => {
+      if (error) console.error("Cache write failed for", placeId, error.message);
+    });
+
+  return details;
+}
+
+/**
+ * Batch-fetch place details with a single cache lookup.
+ * Much faster than 80 individual fetchPlaceDetails calls.
+ */
+export async function fetchPlaceDetailsBatch(
+  placeIds: string[],
+): Promise<Map<string, PlaceDetails>> {
+  if (placeIds.length === 0) return new Map();
+
+  const admin = createAdminClient();
+  const { data: cached } = await admin
+    .from("place_details_cache")
+    .select("google_place_id, details, fetched_at")
+    .in("google_place_id", placeIds);
+
+  const result = new Map<string, PlaceDetails>();
+  const staleOrMissing: string[] = [];
+  const now = Date.now();
+
+  for (const row of cached ?? []) {
+    const age = now - new Date(row.fetched_at).getTime();
+    if (age < CACHE_TTL_MS) {
+      result.set(row.google_place_id, row.details as PlaceDetails);
+    } else {
+      staleOrMissing.push(row.google_place_id);
+    }
+  }
+
+  // Find IDs not in cache at all.
+  const cachedIds = new Set((cached ?? []).map((r) => r.google_place_id));
+  for (const id of placeIds) {
+    if (!cachedIds.has(id)) staleOrMissing.push(id);
+  }
+
+  // Fetch missing from Google in parallel.
+  if (staleOrMissing.length > 0) {
+    const fetched = await Promise.all(
+      staleOrMissing.map(async (id) => ({
+        id,
+        details: await fetchPlaceDetailsFromGoogle(id),
+      })),
+    );
+
+    // Upsert all newly fetched into cache (fire-and-forget).
+    const toUpsert = fetched
+      .filter((f) => f.details !== null)
+      .map((f) => ({
+        google_place_id: f.id,
+        details: f.details as unknown as Record<string, unknown>,
+        fetched_at: new Date().toISOString(),
+      }));
+
+    if (toUpsert.length > 0) {
+      admin
+        .from("place_details_cache")
+        .upsert(toUpsert)
+        .then(({ error }) => {
+          if (error) console.error("Batch cache write failed", error.message);
+        });
+    }
+
+    for (const f of fetched) {
+      if (f.details) result.set(f.id, f.details);
+    }
+  }
+
+  return result;
 }
 
 // Resolve a Place photo's short-lived media URL.

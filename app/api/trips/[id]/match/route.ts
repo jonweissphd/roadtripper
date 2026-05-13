@@ -1,13 +1,79 @@
-import { NextResponse } from "next/server";
-import { findMatches } from "@/lib/matching/findMatches";
-import { findNearby } from "@/lib/matching/findNearby";
+import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { computeAndStoreMatches } from "@/lib/matching/computeMatches";
 
-// Match compute can take 10-15s on long routes. Vercel Hobby caps at 10s; Pro is 60s.
+// Vercel Pro: 60s. Hobby: capped at 10s regardless of this setting.
+// With after() + polling the response returns instantly anyway.
 export const maxDuration = 60;
 
+/**
+ * GET — Poll for match compute status.
+ */
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id: tripId } = await context.params;
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+  if (!user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const { data: trip } = await supabase
+    .from("trips")
+    .select("match_compute_status, match_compute_error, match_compute_started_at, matches_computed_at")
+    .eq("id", tripId)
+    .maybeSingle();
+
+  if (!trip) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  // Stale detection: if computing for 2+ minutes, it probably crashed.
+  if (trip.match_compute_status === "computing" && trip.match_compute_started_at) {
+    const elapsed = Date.now() - new Date(trip.match_compute_started_at).getTime();
+    if (elapsed > 120_000) {
+      const admin = createAdminClient();
+      await admin
+        .from("trips")
+        .update({
+          match_compute_status: "error",
+          match_compute_error: "Computation timed out. Please try again.",
+        })
+        .eq("id", tripId);
+      return NextResponse.json({
+        status: "error",
+        error: "Computation timed out. Please try again.",
+      });
+    }
+  }
+
+  if (trip.match_compute_status === "computing") {
+    return NextResponse.json({ status: "computing" });
+  }
+
+  if (trip.match_compute_status === "error") {
+    return NextResponse.json({
+      status: "error",
+      error: trip.match_compute_error ?? "Unknown error",
+    });
+  }
+
+  // Status is 'done' or null (idle / completed previously).
+  return NextResponse.json({
+    status: "done",
+    matchesComputedAt: trip.matches_computed_at,
+  });
+}
+
+/**
+ * POST — Kick off match compute in the background via after().
+ * Returns immediately so Vercel's 10s timeout is never hit.
+ */
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -35,7 +101,7 @@ export async function POST(
   const { data: trip } = await supabase
     .from("trips")
     .select(
-      "id, creator_id, guest_id, origin_lat, origin_lng, dest_lat, dest_lng, trip_type",
+      "id, creator_id, guest_id, origin_lat, origin_lng, dest_lat, dest_lng, trip_type, match_compute_status",
     )
     .eq("id", tripId)
     .maybeSingle();
@@ -44,7 +110,10 @@ export async function POST(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const isExplore = trip.trip_type === "explore";
+  // Prevent double-submit: if already computing, just return status.
+  if (trip.match_compute_status === "computing") {
+    return NextResponse.json({ status: "computing" });
+  }
 
   // Check if any traveler wants locals-only.
   const [creatorProfileRes, guestProfileRes] = await Promise.all([
@@ -92,10 +161,12 @@ export async function POST(
       .update({
         matches_computed_at: new Date().toISOString(),
         matches_combined: !!trip.guest_id,
+        match_compute_status: "done",
+        match_compute_error: null,
       })
       .eq("id", tripId);
     return NextResponse.json({
-      ok: true,
+      status: "done",
       count: 0,
       reason: "Pick some interests on /profile before searching for stops.",
     });
@@ -113,110 +184,27 @@ export async function POST(
       (creatorIds.has(i.id) ? 1 : 0) + (guestIds.has(i.id) ? 1 : 0),
   }));
 
-  // Branch: explore mode searches around a point, road trip follows a route.
-  let matchRows: Array<{
-    place_id: string;
-    name: string;
-    formatted_address?: string;
-    lat: number;
-    lng: number;
-    detour_seconds: number;
-    rating?: number;
-    review_count?: number;
-    primary_photo_id?: string;
-    matched_interests: string[];
-    shared_tags_count: number;
-    editorial_score?: number;
-    editorial_reasoning?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    raw: any;
-  }> = [];
-  let encodedPolyline: string | null = null;
-
-  if (isExplore) {
-    const nearby = await findNearby(
-      { lat: trip.origin_lat, lng: trip.origin_lng },
-      weighted,
-      localsOnly,
-    );
-    matchRows = nearby.map((n) => ({
-      place_id: n.place_id,
-      name: n.name,
-      formatted_address: n.formatted_address,
-      lat: n.lat,
-      lng: n.lng,
-      detour_seconds: Math.round(n.distance_meters / 15),
-      rating: n.rating,
-      review_count: n.review_count,
-      primary_photo_id: n.primary_photo_id,
-      matched_interests: n.matched_interests,
-      shared_tags_count: n.shared_tags_count,
-      editorial_score: n.editorial_score,
-      editorial_reasoning: n.editorial_reasoning,
-      raw: n.raw,
-    }));
-  } else {
-    const result = await findMatches(
-      { lat: trip.origin_lat, lng: trip.origin_lng },
-      { lat: trip.dest_lat, lng: trip.dest_lng },
-      weighted,
-      routeRange,
-      localsOnly,
-    );
-    encodedPolyline = result.encodedPolyline;
-    matchRows = result.matches.map((m) => ({
-      place_id: m.place_id,
-      name: m.name,
-      formatted_address: m.formatted_address,
-      lat: m.lat,
-      lng: m.lng,
-      detour_seconds: m.detour_seconds,
-      rating: m.rating,
-      review_count: m.review_count,
-      primary_photo_id: m.primary_photo_id,
-      matched_interests: m.matched_interests,
-      shared_tags_count: m.shared_tags_count,
-      editorial_score: m.editorial_score,
-      editorial_reasoning: m.editorial_reasoning,
-      raw: m.raw,
-    }));
-  }
-
+  // Mark as computing BEFORE returning so the GET poller sees it.
   const admin = createAdminClient();
-  await admin.from("trip_matches").delete().eq("trip_id", tripId);
-
-  if (matchRows.length > 0) {
-    const rows = matchRows.map((m) => ({
-      trip_id: tripId,
-      google_place_id: m.place_id,
-      name: m.name,
-      formatted_address: m.formatted_address ?? null,
-      lat: m.lat,
-      lng: m.lng,
-      detour_seconds: m.detour_seconds,
-      rating: m.rating ?? null,
-      review_count: m.review_count ?? null,
-      primary_photo_id: m.primary_photo_id ?? null,
-      matched_interests: m.matched_interests,
-      shared_tags_count: m.shared_tags_count,
-      editorial_score: m.editorial_score ?? null,
-      editorial_reasoning: m.editorial_reasoning ?? null,
-      raw: m.raw,
-    }));
-    const { error } = await admin.from("trip_matches").insert(rows);
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-  }
-
   await admin
     .from("trips")
     .update({
-      matches_computed_at: new Date().toISOString(),
-      matches_combined: !!trip.guest_id,
-      route_polyline: encodedPolyline,
+      match_compute_status: "computing",
+      match_compute_error: null,
+      match_compute_started_at: new Date().toISOString(),
     })
     .eq("id", tripId);
 
-  return NextResponse.json({ ok: true, count: matchRows.length });
+  // Schedule the heavy compute to run after the response is sent.
+  after(async () => {
+    await computeAndStoreMatches({
+      tripId,
+      trip,
+      weighted,
+      routeRange,
+      localsOnly,
+    });
+  });
+
+  return NextResponse.json({ status: "computing" });
 }

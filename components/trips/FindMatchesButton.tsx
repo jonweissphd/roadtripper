@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +10,9 @@ const RANGE_PRESETS = [
   { label: "Middle", start: 0.3, end: 0.7 },
   { label: "Late", start: 0.65, end: 1 },
 ] as const;
+
+const POLL_INTERVAL_MS = 2500;
+const MAX_POLLS = 48; // 48 × 2.5s = 2 min max wait
 
 export function FindMatchesButton({
   tripId,
@@ -22,12 +25,47 @@ export function FindMatchesButton({
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const [rangeIdx, setRangeIdx] = useState(0);
   const router = useRouter();
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+
+  function startTimer() {
+    setElapsed(0);
+    timerRef.current = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = undefined;
+    }
+  }
+
+  async function pollForCompletion(): Promise<void> {
+    for (let i = 0; i < MAX_POLLS; i++) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      const res = await fetch(`/api/trips/${tripId}/match`);
+      const data = (await res.json().catch(() => ({}))) as {
+        status?: string;
+        error?: string;
+      };
+
+      if (data.status === "done") return;
+      if (data.status === "error") {
+        throw new Error(data.error ?? "Match computation failed");
+      }
+      // status === "computing" — keep polling
+    }
+    throw new Error("Match computation timed out. Please try again.");
+  }
 
   async function run() {
     setIsLoading(true);
     setError(null);
+    startTimer();
     const range = RANGE_PRESETS[rangeIdx];
     try {
       const res = await fetch(`/api/trips/${tripId}/match`, {
@@ -39,21 +77,24 @@ export function FindMatchesButton({
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
+        status?: string;
         error?: string;
         reason?: string;
       };
       if (!res.ok) {
-        if (res.status === 504) {
-          throw new Error(
-            "Search timed out — this can happen on the free hosting tier. Try again or run locally.",
-          );
-        }
         throw new Error(data.error ?? `Failed to compute matches (${res.status})`);
       }
+
+      // If the server is computing in background, poll until done.
+      if (data.status === "computing") {
+        await pollForCompletion();
+      }
+
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      stopTimer();
       setIsLoading(false);
     }
   }
@@ -86,6 +127,9 @@ export function FindMatchesButton({
               <span className="relative inline-flex size-2 rounded-full bg-current" />
             </span>
             {isExplore ? "Searching nearby…" : "Scanning route…"}
+            {elapsed > 0 && (
+              <span className="tabular-nums text-xs opacity-70">({elapsed}s)</span>
+            )}
           </span>
         ) : (
           label
@@ -93,9 +137,13 @@ export function FindMatchesButton({
       </Button>
       {isLoading && (
         <p className="text-xs text-muted-foreground">
-          {isExplore
-            ? "Takes 5–15 seconds. We're searching for the best things nearby and ranking them."
-            : "Takes 5–15 seconds. We're scanning the corridor, finding places, and ranking them."}
+          {elapsed < 5
+            ? "Starting search…"
+            : elapsed < 15
+              ? isExplore
+                ? "Searching for the best things nearby and ranking them…"
+                : "Scanning the corridor, finding places, and ranking them…"
+              : "Still working — this can take up to a minute on long routes…"}
         </p>
       )}
       {error && (

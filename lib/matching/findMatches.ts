@@ -2,7 +2,7 @@ import "server-only";
 import { fetchRoute } from "@/lib/google/directions";
 import { detourSecondsBatch } from "@/lib/google/distanceMatrix";
 import {
-  fetchPlaceDetails,
+  fetchPlaceDetailsBatch,
   searchTextNearbyIds,
   type PlaceDetails,
 } from "@/lib/google/places";
@@ -168,12 +168,11 @@ export async function findMatches(
     .slice(0, MAX_CANDIDATES_FOR_DETOUR)
     .map(([id]) => id);
 
-  const detailsResults = await Promise.all(
-    sortedIds.map(async (id) => ({
-      id,
-      details: await fetchPlaceDetails(id),
-    })),
-  );
+  const detailsMap = await fetchPlaceDetailsBatch(sortedIds);
+  const detailsResults = sortedIds.map((id) => ({
+    id,
+    details: detailsMap.get(id) ?? null,
+  }));
 
   // 5. Filter to corridor.
   type Candidate = {
