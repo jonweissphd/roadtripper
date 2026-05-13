@@ -49,6 +49,44 @@ export async function saveProfile(formData: FormData) {
   redirect("/profile?saved=1");
 }
 
+/** Save profile and redirect straight to trip creation. */
+export async function saveProfileAndGo(formData: FormData) {
+  const display_name = String(formData.get("display_name") ?? "").trim();
+  const locals_only = formData.get("locals_only") === "1";
+  const interest_ids = formData
+    .getAll("interest_id")
+    .map((v) => String(v))
+    .filter(Boolean);
+
+  if (!display_name) {
+    redirect(`/profile?error=${encodeURIComponent("Display name is required")}`);
+  }
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+  if (!user) redirect("/login");
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, display_name, locals_only }, { onConflict: "id" });
+
+  if (profileError) {
+    redirect(`/profile?error=${encodeURIComponent(profileError.message)}`);
+  }
+
+  await supabase.from("profile_interests").delete().eq("profile_id", user.id);
+
+  if (interest_ids.length > 0) {
+    const rows = interest_ids.map((interest_id) => ({
+      profile_id: user.id,
+      interest_id,
+    }));
+    await supabase.from("profile_interests").insert(rows);
+  }
+
+  redirect("/trips/new");
+}
+
 /** Auto-save just the interest selections (called on each toggle). */
 export async function autoSaveInterests(interestIds: string[]) {
   const supabase = await createClient();

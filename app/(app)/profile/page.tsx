@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,7 @@ import {
 } from "@/components/interests/InterestPicker";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { autoSaveInterests, saveProfile } from "./actions";
+import { autoSaveInterests, saveProfile, saveProfileAndGo } from "./actions";
 
 const MIN_INTERESTS_FOR_TRIP = 5;
 
@@ -68,22 +67,15 @@ export default async function ProfilePage({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-12 sm:py-14">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-8">
-        <div className="space-y-2">
-          <Eyebrow>Your profile</Eyebrow>
-          <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
-            What do you love?
-          </h1>
-          <p className="text-[0.8125rem] text-muted-foreground">{user.email}</p>
-        </div>
-        {canStartTrip && (
-          <Link href="#start" className={buttonVariants()}>
-            Let&apos;s go
-          </Link>
-        )}
+      <div className="space-y-2 pb-8">
+        <Eyebrow>Your profile</Eyebrow>
+        <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+          What do you love?
+        </h1>
+        <p className="text-[0.8125rem] text-muted-foreground">{user.email}</p>
       </div>
 
-      <form action={saveProfile} className="space-y-10">
+      <form id="profile-form" action={saveProfile} className="space-y-10">
         <section className="space-y-2.5">
           <Label htmlFor="display_name">Display name</Label>
           <Input
@@ -143,73 +135,37 @@ export default async function ProfilePage({
           </p>
         )}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Button type="submit" size="lg" variant="outline">
-            Save profile
-          </Button>
-          {canStartTrip && (
-            <Link
-              href="/trips/new"
-              className={buttonVariants({
-                size: "lg",
-                className: "text-[0.9375rem]",
-              })}
-            >
-              Let&apos;s Detour →
-            </Link>
-          )}
-        </div>
+        {/* Spacer so sticky bar doesn't cover content */}
+        <div className="h-20" />
       </form>
 
-      {canStartTrip && (
-        <section
-          id="start"
-          className="mt-12 space-y-5 rounded-2xl border-2 border-primary/25 bg-primary/[0.06] p-6 sm:p-8"
-        >
-          {saved && (
-            <div className="rounded-lg bg-primary/15 px-4 py-2.5 text-sm font-medium text-primary">
-              ✓ Profile saved!
-            </div>
-          )}
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight sm:text-[1.375rem]">
-              Ready? Pick your adventure.
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Your interests are locked in. Where to next?
-            </p>
+      {/* Sticky bottom bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 backdrop-blur-sm">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-6 py-3">
+          <div className="text-xs text-muted-foreground">
+            {canStartTrip ? (
+              saved ? "✓ Saved!" : `${selectedIds.length} interests selected`
+            ) : (
+              `Pick at least ${MIN_INTERESTS_FOR_TRIP} interests (${selectedIds.length}/${MIN_INTERESTS_FOR_TRIP})`
+            )}
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Link
-              href="/trips/new"
-              className={buttonVariants({
-                size: "lg",
-                className:
-                  "h-auto flex-col gap-0.5 py-4 text-[0.9375rem] sm:px-8",
-              })}
-            >
-              <span>🚗 Plan a road trip</span>
-              <span className="text-xs font-normal text-primary-foreground/70">
-                Start + destination
-              </span>
-            </Link>
-            <Link
-              href="/explore/new"
-              className={buttonVariants({
-                size: "lg",
-                variant: "outline",
-                className:
-                  "h-auto flex-col gap-0.5 border-2 border-primary/30 py-4 text-[0.9375rem] hover:border-primary/50 hover:bg-primary/5 sm:px-8",
-              })}
-            >
-              <span>📍 Explore an area</span>
-              <span className="text-xs font-normal text-muted-foreground">
-                City or zip code
-              </span>
-            </Link>
+          <div className="flex items-center gap-2">
+            <Button type="submit" form="profile-form" size="sm" variant="outline">
+              Save
+            </Button>
+            {canStartTrip && (
+              <Button
+                type="submit"
+                form="profile-form"
+                formAction={saveProfileAndGo}
+                size="sm"
+              >
+                🚗 Let&apos;s Detour →
+              </Button>
+            )}
           </div>
-        </section>
-      )}
+        </div>
+      </div>
     </main>
   );
 }
