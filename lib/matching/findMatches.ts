@@ -20,9 +20,21 @@ const SAMPLE_RADIUS_M = 15 * MILES_TO_METERS;
 const SAMPLE_SPACING_M = 13 * MILES_TO_METERS;
 const MAX_SAMPLES = 25;
 const CORRIDOR_RADIUS_M = 12 * MILES_TO_METERS;
-const MAX_CANDIDATES_FOR_DETOUR = 80;
+const MAX_CANDIDATES_FOR_DETOUR = 50;
 const MAX_DISPLAY = 50;
 const FOOD_DRINK_CAP = 0.2;
+/** Max keywords to search per interest. Keeps API call count manageable. */
+const MAX_KEYWORDS_PER_INTEREST = 2;
+
+/** Pick `n` random items from an array (Fisher-Yates on a copy). */
+function shuffleAndTake<T>(arr: T[], n: number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
 
 const FOOD_DRINK_TYPES = new Set([
   "restaurant",
@@ -134,8 +146,12 @@ export async function findMatches(
   const placeMatches = new Map<string, Set<string>>();
 
   await Promise.all(
-    sharedInterests.flatMap((interest) =>
-      interest.search_keywords.flatMap((keyword) =>
+    sharedInterests.flatMap((interest) => {
+      // Pick a random subset of keywords to keep API calls manageable.
+      const keywords = interest.search_keywords.length <= MAX_KEYWORDS_PER_INTEREST
+        ? interest.search_keywords
+        : shuffleAndTake(interest.search_keywords, MAX_KEYWORDS_PER_INTEREST);
+      return keywords.flatMap((keyword) =>
         samples.map(async (sample) => {
           try {
             const ids = await searchTextNearbyIds(
@@ -154,8 +170,8 @@ export async function findMatches(
             );
           }
         }),
-      ),
-    ),
+      );
+    }),
   );
 
   if (placeMatches.size === 0) {

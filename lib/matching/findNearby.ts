@@ -11,9 +11,22 @@ import { rerankPlaces, type RerankInput } from "./rerank";
 const MILES_TO_METERS = 1609.344;
 const SEARCH_RADIUS_M = 15 * MILES_TO_METERS;
 const MAX_DISTANCE_M = 30 * MILES_TO_METERS; // Hard cutoff: drop anything 30+ miles away
-const MAX_CANDIDATES = 80;
+const MAX_CANDIDATES = 50;
 const MAX_DISPLAY = 50;
 const FOOD_DRINK_CAP = 0.2;
+
+/** Max keywords to search per interest. Keeps API call count manageable. */
+const MAX_KEYWORDS_PER_INTEREST = 2;
+
+/** Pick `n` random items from an array (Fisher-Yates on a copy). */
+function shuffleAndTake<T>(arr: T[], n: number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
 
 const FOOD_DRINK_TYPES = new Set([
   "restaurant", "food", "bakery", "cafe", "bar", "meal_delivery",
@@ -69,8 +82,11 @@ export async function findNearby(
   const placeMatches = new Map<string, Set<string>>();
 
   await Promise.all(
-    sharedInterests.flatMap((interest) =>
-      interest.search_keywords.map(async (keyword) => {
+    sharedInterests.flatMap((interest) => {
+      const keywords = interest.search_keywords.length <= MAX_KEYWORDS_PER_INTEREST
+        ? interest.search_keywords
+        : shuffleAndTake(interest.search_keywords, MAX_KEYWORDS_PER_INTEREST);
+      return keywords.map(async (keyword) => {
         try {
           const ids = await searchTextNearbyIds(
             keyword,
@@ -87,8 +103,8 @@ export async function findNearby(
             err,
           );
         }
-      }),
-    ),
+      });
+    }),
   );
 
   if (placeMatches.size === 0) return [];
