@@ -1,44 +1,26 @@
-import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { AddressAutocomplete } from "@/components/trips/AddressAutocomplete";
-import { createTrip } from "./actions";
+import { NewTripForm } from "./NewTripForm";
 
 export default async function NewTripPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, mode } = await searchParams;
 
   return (
     <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16">
       <div className="space-y-3 pb-10">
-        <Eyebrow>New trip</Eyebrow>
+        <Eyebrow>New adventure</Eyebrow>
         <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
           Where are you headed?
         </h1>
         <p className="max-w-[44ch] text-[0.9375rem] leading-relaxed text-muted-foreground">
-          Tell us the start and end of your road trip. We&apos;ll find the best
-          stops along the way.
+          Plan a road trip or explore what&apos;s around you.
         </p>
       </div>
 
-      <form action={createTrip} className="space-y-8">
-        <AddressAutocomplete name="origin" label="Starting from" />
-        <AddressAutocomplete name="dest" label="Driving to" />
-
-        {error && (
-          <p className="rounded-lg bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-
-        <div className="pt-3">
-          <Button type="submit" size="lg" className="text-[0.9375rem] sm:px-8">
-            Create trip
-          </Button>
-        </div>
-      </form>
+      <NewTripForm error={error} initialMode={mode === "explore" ? "explore" : "roadtrip"} />
     </main>
   );
 }
