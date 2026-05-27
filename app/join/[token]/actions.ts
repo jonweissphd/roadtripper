@@ -39,5 +39,21 @@ export async function acceptInvite(formData: FormData) {
     redirect(`/join/${token}`);
   }
 
+  // Check if the guest has picked any interests yet. If not, send them to
+  // the profile page first so combined matching will work.
+  const { count } = await admin
+    .from("profile_interests")
+    .select("*", { count: "exact", head: true })
+    .eq("profile_id", user.id);
+
+  if (!count || count < 5) {
+    // Send to profile with a param telling them they just joined a trip.
+    redirect(
+      `/profile?joined=${updated.id}&msg=${encodeURIComponent(
+        "Pick your interests so we can find stops you both love.",
+      )}`,
+    );
+  }
+
   redirect(`/trips/${updated.id}`);
 }

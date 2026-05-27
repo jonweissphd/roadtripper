@@ -87,6 +87,45 @@ export async function saveProfileAndGo(formData: FormData) {
   redirect("/trips/new");
 }
 
+/** Save profile and redirect to an existing trip (used after accepting an invite). */
+export async function saveProfileAndGoToTrip(formData: FormData) {
+  const display_name = String(formData.get("display_name") ?? "").trim();
+  const locals_only = formData.get("locals_only") === "1";
+  const interest_ids = formData
+    .getAll("interest_id")
+    .map((v) => String(v))
+    .filter(Boolean);
+  const tripId = String(formData.get("joined_trip_id") ?? "").trim();
+
+  if (!display_name) {
+    redirect(`/profile?error=${encodeURIComponent("Display name is required")}`);
+  }
+
+  const supabase = await createClient();
+  const user = await getCurrentUser(supabase);
+  if (!user) redirect("/login");
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, display_name, locals_only }, { onConflict: "id" });
+
+  if (profileError) {
+    redirect(`/profile?error=${encodeURIComponent(profileError.message)}`);
+  }
+
+  await supabase.from("profile_interests").delete().eq("profile_id", user.id);
+
+  if (interest_ids.length > 0) {
+    const rows = interest_ids.map((interest_id) => ({
+      profile_id: user.id,
+      interest_id,
+    }));
+    await supabase.from("profile_interests").insert(rows);
+  }
+
+  redirect(tripId ? `/trips/${tripId}` : "/trips/new");
+}
+
 /** Auto-save just the interest selections (called on each toggle). */
 export async function autoSaveInterests(interestIds: string[]) {
   const supabase = await createClient();

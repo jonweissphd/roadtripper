@@ -10,7 +10,12 @@ import {
 } from "@/components/interests/InterestPicker";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { autoSaveInterests, saveProfile, saveProfileAndGo } from "./actions";
+import {
+  autoSaveInterests,
+  saveProfile,
+  saveProfileAndGo,
+  saveProfileAndGoToTrip,
+} from "./actions";
 
 const MIN_INTERESTS_FOR_TRIP = 5;
 
@@ -30,9 +35,9 @@ const CATEGORY_ORDER = [
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; joined?: string; msg?: string }>;
 }) {
-  const { error, saved } = await searchParams;
+  const { error, saved, joined, msg } = await searchParams;
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
@@ -74,6 +79,16 @@ export default async function ProfilePage({
         </h1>
         <p className="text-[0.8125rem] text-muted-foreground">{user.email}</p>
       </div>
+
+      {joined && msg && (
+        <div className="mb-8 rounded-xl border border-primary/30 bg-primary/5 px-5 py-4">
+          <p className="text-sm font-medium text-foreground">{msg}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Once you pick at least 5, hit the button below to see your trip.
+          </p>
+          <input type="hidden" form="profile-form" name="joined_trip_id" value={joined} />
+        </div>
+      )}
 
       <form id="profile-form" action={saveProfile} className="space-y-10">
         <section className="space-y-2.5">
@@ -157,10 +172,10 @@ export default async function ProfilePage({
               <Button
                 type="submit"
                 form="profile-form"
-                formAction={saveProfileAndGo}
+                formAction={joined ? saveProfileAndGoToTrip : saveProfileAndGo}
                 size="sm"
               >
-                Let&apos;s Detour &rarr;
+                {joined ? "See your trip →" : "Let’s Detour →"}
               </Button>
             )}
           </div>

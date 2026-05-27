@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { signInAsGuest } from "@/app/(auth)/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -95,7 +96,7 @@ export default async function JoinPage({
     <main className="mx-auto flex w-full max-w-md flex-col px-6 py-16 sm:py-20">
       <Link
         href="/"
-        className="self-center text-sm font-medium tracking-[-0.01em] text-foreground/80 transition-colors hover:text-foreground"
+        className="self-center text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:text-foreground/70"
       >
         Detour
       </Link>
@@ -128,28 +129,42 @@ export default async function JoinPage({
         </div>
       </div>
 
+      {error && (
+        <p className="mt-5 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       {user ? (
-        <form action={acceptInvite} className="mt-7 space-y-3">
+        <form action={acceptInvite} className="mt-7">
           <input type="hidden" name="token" value={token} />
-          {error && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          )}
           <Button type="submit" size="lg" className="w-full">
-            Accept invite
+            Join this trip
           </Button>
         </form>
       ) : (
-        <div className="mt-7 space-y-3">
-          <p className="text-center text-sm text-muted-foreground">
-            Sign up or log in to accept.
-          </p>
+        <div className="mt-7 space-y-4">
+          <form action={signInAsGuest}>
+            <input type="hidden" name="next" value={`/join/${token}`} />
+            <Button type="submit" size="lg" className="w-full">
+              Join as guest
+            </Button>
+          </form>
+
+          <div className="relative flex items-center gap-4">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              or
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
           <div className="flex gap-2">
             <Link
               href={`/signup?next=${encodeURIComponent(`/join/${token}`)}`}
               className={buttonVariants({
                 size: "lg",
+                variant: "outline",
                 className: "flex-1",
               })}
             >
@@ -166,6 +181,11 @@ export default async function JoinPage({
               Log in
             </Link>
           </div>
+
+          <p className="text-center text-xs text-muted-foreground">
+            Guest accounts work instantly. Create an account later to keep
+            your trips.
+          </p>
         </div>
       )}
     </main>
