@@ -58,7 +58,16 @@ export function TripContent({
   );
 
   const checkedMatches = useMemo(
-    () => matches.filter((m) => checkedIds.has(m.google_place_id)),
+    () =>
+      matches
+        .filter((m) => checkedIds.has(m.google_place_id))
+        .map((m) => ({
+          lat: m.lat,
+          lng: m.lng,
+          name: m.name,
+          google_place_id: m.google_place_id,
+          detour_seconds: m.detour_seconds,
+        })),
     [matches, checkedIds],
   );
 
@@ -85,6 +94,7 @@ export function TripContent({
       />
       {checkedMatches.length > 0 && (
         <LaunchBar
+          tripId={tripId}
           origin={origin}
           destination={destination}
           originAddress={originAddress}
