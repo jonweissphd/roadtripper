@@ -187,7 +187,13 @@ export async function findNearby(
     types: c.types,
   }));
 
-  const rerankResults = await rerankPlaces(rerankInput, localsOnly);
+  const regionHint = candidates[0]?.formatted_address?.split(",").slice(-2).join(",").trim();
+  const userInterests = sharedInterests.map((i) => i.slug);
+
+  const rerankResults = await rerankPlaces(rerankInput, localsOnly, {
+    regionHint,
+    userInterests,
+  });
   const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
 
   // 5. Filter chains when locals-only is on, then assemble + sort.

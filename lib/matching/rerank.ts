@@ -47,6 +47,7 @@ function fallbackScore(c: RerankInput, localsOnly = false): RerankOutput {
 export async function rerankPlaces(
   candidates: RerankInput[],
   localsOnly = false,
+  context?: { regionHint?: string; userInterests?: string[] },
 ): Promise<RerankOutput[]> {
   if (candidates.length === 0) return [];
   if (!GEMINI_KEY) return candidates.map((c) => fallbackScore(c, localsOnly));
@@ -58,27 +59,39 @@ The user ONLY wants independent, locally-owned, mom & pop businesses. Score ANY 
 `
     : "";
 
-  const prompt = `You are ranking road-trip stops by how "worth the detour" they are — the kind of places a local would insist you visit, not what shows up first on Google.
+  const contextBlock = [
+    context?.regionHint ? `Region: ${context.regionHint}` : "",
+    context?.userInterests?.length
+      ? `The travelers are specifically interested in: ${context.userInterests.join(", ")}. Strongly reward places that align with these interests.`
+      : "",
+  ].filter(Boolean).join("\n");
+
+  const prompt = `You are an opinionated travel editor ranking stops for a road trip app called Detour. Your job is to surface the places a well-traveled local would insist on — hidden gems, beloved neighborhood spots, one-of-a-kind experiences. NOT the first Google result.
 ${localsOnlyBlock}
-For each place, return a score 0-10 and a one-sentence reason.
+${contextBlock ? `\n${contextBlock}\n` : ""}
+For each place, return a score 0-10 and a SHORT punchy one-sentence reason that would make someone want to visit. Write the reason as if recommending to a friend — conversational, specific, opinionated. Bad: "Popular local restaurant." Good: "The smoked brisket here has a cult following — people drive 2 hours for it."
 
-Strong reward signals (score 7-10):
-- Hidden gems, local legends, one-of-a-kind spots
-- Unique outdoor/activity/cultural experiences you can't get elsewhere
-- Independent operators with a loyal following
-- "Only in this town" character — quirky museums, roadside oddities, legendary local spots
-- Reviews mentioning "hidden gem", "local favorite", "don't miss", "worth the drive"
-- Sweet-spot ratings 4.3-4.8 with real reviews (not inflated)
+Score 8-10 (Must visit):
+- Truly one-of-a-kind: the only one in the region, legendary status, cult following
+- Reviews gush with specifics ("best X I've ever had", "hidden gem", "worth the drive")
+- The kind of place that defines a town or neighborhood
+- Unique experiences you literally cannot get anywhere else
 
-Moderate reward (4-6):
-- Solid independent restaurants or cafés with strong local reputation
-- Well-known parks, trails, or scenic spots
+Score 5-7 (Worth a stop):
+- Strong independent spots with loyal locals and clear character
+- Well-regarded parks, trails, cultural sites with real draw
+- Interesting specialty shops or experiences that match the travelers' interests
 
-Penalize (0-3):
-- Generic chains of any kind (fast food, coffee, retail)
-- Tourist traps with shallow praise
-- Any restaurant that isn't locally iconic or notable — a random pizza place is a 1, a legendary regional BBQ joint is a 7
-- Suspiciously perfect 5.0 with very few reviewers
+Score 2-4 (Fine but not special):
+- Decent places that are interchangeable with others in any town
+- Generic restaurants without a standout dish or story
+- Mildly interesting but nothing you'd remember
+
+Score 0-1 (Skip):
+- Chains, franchises, or multi-location businesses of any kind
+- Tourist traps, gift shops attached to gas stations
+- Suspiciously perfect 5.0 ratings with <10 reviews
+- Places with generic names and no distinguishing character
 
 Here are the candidates:
 ${JSON.stringify(candidates, null, 2)}`;

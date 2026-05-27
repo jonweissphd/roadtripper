@@ -263,7 +263,14 @@ export async function findMatches(
     types: c.types,
   }));
 
-  const rerankResults = await rerankPlaces(rerankInput, localsOnly);
+  // Derive a region hint from the first candidate's address for Gemini context.
+  const regionHint = candidates[0]?.formatted_address?.split(",").slice(-2).join(",").trim();
+  const userInterests = sharedInterests.map((i) => i.slug);
+
+  const rerankResults = await rerankPlaces(rerankInput, localsOnly, {
+    regionHint,
+    userInterests,
+  });
   const rerankById = new Map(rerankResults.map((r) => [r.id, r]));
 
   // 8. Filter chains when locals-only is on, then assemble + sort.

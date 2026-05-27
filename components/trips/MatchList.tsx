@@ -63,6 +63,7 @@ export function MatchList({
 }) {
   const itemRefs = useRef<Map<string, HTMLLIElement>>(new Map());
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [sortMode, setSortMode] = useState<"best" | "nearest">("best");
 
   // Scroll to selected item (from map click).
   useEffect(() => {
@@ -98,6 +99,14 @@ export function MatchList({
       grouped[primaryCat].push(m);
     }
 
+    // Sort within each category based on the active sort mode.
+    for (const cat of Object.keys(grouped)) {
+      if (sortMode === "nearest") {
+        grouped[cat].sort((a, b) => a.detour_seconds - b.detour_seconds);
+      }
+      // "best" keeps the server-side ranking (shared_tags_count → editorial → detour).
+    }
+
     // Build ordered category list (only categories with results).
     const categoryList = CATEGORY_ORDER.filter((cat) => grouped[cat]?.length > 0);
     // Add any categories not in the predefined order.
@@ -108,7 +117,7 @@ export function MatchList({
     }
 
     return { grouped, categoryList };
-  }, [matches, categoryBySlug]);
+  }, [matches, categoryBySlug, sortMode]);
 
   // Track show counts per category.
   const [showCounts, setShowCounts] = useState<Record<string, number>>(() => {
@@ -151,42 +160,73 @@ export function MatchList({
 
   return (
     <div className="space-y-6">
-      {/* Category filter tabs */}
-      {categoryList.length > 1 && (
-        <div className="flex flex-wrap gap-2">
+      {/* Controls: category filters + sort toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Category filter tabs */}
+        {categoryList.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveCategory(null)}
+              className={cn(
+                "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
+                activeCategory === null
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              )}
+            >
+              All ({matches.length})
+            </button>
+            {categoryList.map((cat) => {
+              const meta = CATEGORY_META[cat] ?? { label: cat, emoji: "" };
+              const count = grouped[cat]?.length ?? 0;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+                  className={cn(
+                    "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
+                    activeCategory === cat
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
+                  )}
+                >
+                  {meta.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Sort toggle */}
+        <div className="flex gap-1 rounded-lg border border-border bg-muted/40 p-0.5">
           <button
             type="button"
-            onClick={() => setActiveCategory(null)}
+            onClick={() => setSortMode("best")}
             className={cn(
-              "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
-              activeCategory === null
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              "rounded-md px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
+              sortMode === "best"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
-            All ({matches.length})
+            Best
           </button>
-          {categoryList.map((cat) => {
-            const meta = CATEGORY_META[cat] ?? { label: cat, emoji: "" };
-            const count = grouped[cat]?.length ?? 0;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                className={cn(
-                  "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
-                  activeCategory === cat
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
-                )}
-              >
-                {meta.label} ({count})
-              </button>
-            );
-          })}
+          <button
+            type="button"
+            onClick={() => setSortMode("nearest")}
+            className={cn(
+              "rounded-md px-3 py-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
+              sortMode === "nearest"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Nearest
+          </button>
         </div>
-      )}
+      </div>
 
       {/* Category columns */}
       <div
