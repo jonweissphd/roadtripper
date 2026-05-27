@@ -8,12 +8,13 @@ import {
   type Interest,
   type InterestGroup,
 } from "@/components/interests/InterestPicker";
+import { TripPlanSection } from "@/components/trips/TripPlanSection";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   autoSaveInterests,
   saveProfile,
-  saveProfileAndGo,
+  saveProfileAndCreateTrip,
   saveProfileAndGoToTrip,
 } from "./actions";
 
@@ -139,6 +140,9 @@ export default async function ProfilePage({
           </label>
         </section>
 
+        {/* Plan a trip — only show once enough interests are picked. */}
+        {canStartTrip && !joined && <TripPlanSection />}
+
         {error && (
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
@@ -172,7 +176,7 @@ export default async function ProfilePage({
               <Button
                 type="submit"
                 form="profile-form"
-                formAction={joined ? saveProfileAndGoToTrip : saveProfileAndGo}
+                formAction={joined ? saveProfileAndGoToTrip : saveProfileAndCreateTrip}
                 size="sm"
               >
                 {joined ? "See your trip →" : "Let’s Detour →"}

@@ -16,12 +16,16 @@ import { isClosedNow, isKnownChain } from "./filters";
 import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
-const SAMPLE_RADIUS_M = 15 * MILES_TO_METERS;
-const SAMPLE_SPACING_M = 13 * MILES_TO_METERS;
-const MAX_SAMPLES = 25;
-const CORRIDOR_RADIUS_M = 18 * MILES_TO_METERS;
-const MAX_CANDIDATES_FOR_DETOUR = 120;
-const MAX_DISPLAY = 50;
+// Wider per-sample radius so single sample circles reach off-route gems.
+const SAMPLE_RADIUS_M = 22 * MILES_TO_METERS;
+// Denser sampling so different "20 closest" buckets surface different places.
+const SAMPLE_SPACING_M = 8 * MILES_TO_METERS;
+const MAX_SAMPLES = 30;
+// Wider corridor so a place 20 miles off the route still counts.
+const CORRIDOR_RADIUS_M = 25 * MILES_TO_METERS;
+// Big candidate pool — corridor + chain + closed filters drop ~50%.
+const MAX_CANDIDATES_FOR_DETOUR = 200;
+const MAX_DISPLAY = 60;
 /** Max keywords to search per interest. Keeps API call count manageable. */
 const MAX_KEYWORDS_PER_INTEREST = 3;
 
@@ -335,10 +339,10 @@ export async function findMatches(
     sharedInterests.map((i) => [i.slug, i.category]),
   );
 
-  // Dedup only when names match AND places are within 5km of each other
-  // (likely the same physical place returned via different keywords). Keep
-  // legitimately distinct places that happen to share a name.
-  const DEDUP_RADIUS_M = 5000;
+  // Dedup only the same physical listing (same name AND same coordinates
+  // within ~300m to handle GPS jitter). Different "Joe's Cafes" in different
+  // towns are kept. Different "Longwood Gardens" listings are merged.
+  const DEDUP_RADIUS_M = 300;
   const deduped: MatchResult[] = [];
   const seenByName = new Map<string, MatchResult[]>();
   for (const r of sorted) {
@@ -346,7 +350,9 @@ export async function findMatches(
     const existing = seenByName.get(normName) ?? [];
     const isDupe = existing.some((other) => {
       const dx = (other.lat - r.lat) * 111000;
-      const dy = (other.lng - r.lng) * 111000;
+      // Correct longitude scaling for latitude.
+      const dy =
+        (other.lng - r.lng) * 111000 * Math.cos((r.lat * Math.PI) / 180);
       return Math.sqrt(dx * dx + dy * dy) < DEDUP_RADIUS_M;
     });
     if (isDupe) continue;

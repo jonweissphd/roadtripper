@@ -9,10 +9,10 @@ import { isClosedNow, isKnownChain } from "./filters";
 import { rerankPlaces, type RerankInput } from "./rerank";
 
 const MILES_TO_METERS = 1609.344;
-const SEARCH_RADIUS_M = 15 * MILES_TO_METERS;
-const MAX_DISTANCE_M = 30 * MILES_TO_METERS; // Hard cutoff: drop anything 30+ miles away
-const MAX_CANDIDATES = 120;
-const MAX_DISPLAY = 50;
+const SEARCH_RADIUS_M = 20 * MILES_TO_METERS;
+const MAX_DISTANCE_M = 35 * MILES_TO_METERS; // Hard cutoff: drop anything 35+ miles away
+const MAX_CANDIDATES = 200;
+const MAX_DISPLAY = 60;
 
 /** Max keywords to search per interest. Keeps API call count manageable. */
 const MAX_KEYWORDS_PER_INTEREST = 3;
@@ -249,8 +249,8 @@ export async function findNearby(
     sharedInterests.map((i) => [i.slug, i.category]),
   );
 
-  // Dedup only when names match AND places are within 5km of each other.
-  const DEDUP_RADIUS_M = 5000;
+  // Dedup only the same physical listing (within ~300m).
+  const DEDUP_RADIUS_M = 300;
   const deduped: NearbyResult[] = [];
   const seenByName = new Map<string, NearbyResult[]>();
   for (const r of sorted) {
@@ -258,7 +258,8 @@ export async function findNearby(
     const existing = seenByName.get(normName) ?? [];
     const isDupe = existing.some((other) => {
       const dx = (other.lat - r.lat) * 111000;
-      const dy = (other.lng - r.lng) * 111000;
+      const dy =
+        (other.lng - r.lng) * 111000 * Math.cos((r.lat * Math.PI) / 180);
       return Math.sqrt(dx * dx + dy * dy) < DEDUP_RADIUS_M;
     });
     if (isDupe) continue;
