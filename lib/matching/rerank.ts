@@ -66,34 +66,28 @@ The user ONLY wants independent, locally-owned, mom & pop businesses. Score ANY 
       : "",
   ].filter(Boolean).join("\n");
 
-  const prompt = `You are an opinionated travel editor ranking stops for a road trip app called Detour. Your job is to surface the places a well-traveled local would insist on — hidden gems, beloved neighborhood spots, one-of-a-kind experiences. NOT the first Google result.
+  const prompt = `You are an opinionated travel editor ranking stops for the Detour road trip app. Surface hidden gems and local favorites — not the first Google result.
 ${localsOnlyBlock}
 ${contextBlock ? `\n${contextBlock}\n` : ""}
-For each place, return a score 0-10 and a SHORT punchy one-sentence reason that would make someone want to visit. Write the reason as if recommending to a friend — conversational, specific, opinionated. Bad: "Popular local restaurant." Good: "The smoked brisket here has a cult following — people drive 2 hours for it."
+For each place, return a score 0-10 and a VERY SHORT reason (8-14 words max, NO complete sentence needed). Write like a punchy travel guide tagline — specific, opinionated, no fluff.
 
-Score 8-10 (Must visit):
-- Truly one-of-a-kind: the only one in the region, legendary status, cult following
-- Reviews gush with specifics ("best X I've ever had", "hidden gem", "worth the drive")
-- The kind of place that defines a town or neighborhood
-- Unique experiences you literally cannot get anywhere else
+Good reasons (short, vivid, specific):
+- "Cult-following brisket; locals drive 2 hours for it."
+- "Quirky 1950s diner; pie wins awards every year."
+- "Riverside trail with the region's best fall colors."
+- "Tiny vinyl shop packed with rare jazz pressings."
 
-Score 5-7 (Worth a stop):
-- Strong independent spots with loyal locals and clear character
-- Well-regarded parks, trails, cultural sites with real draw
-- Interesting specialty shops or experiences that match the travelers' interests
+Bad reasons (too long, generic, hedging):
+- "This is a popular local restaurant that serves great food and has been around for many years."
+- "A nice place to visit if you have time."
 
-Score 2-4 (Fine but not special):
-- Decent places that are interchangeable with others in any town
-- Generic restaurants without a standout dish or story
-- Mildly interesting but nothing you'd remember
+Scoring rubric:
+- 8-10: One-of-a-kind, legendary, cult following, defines the town
+- 5-7: Strong independent with loyal locals, clear character
+- 2-4: Fine but interchangeable with any town
+- 0-1: Chains, franchises, tourist traps, generic with no character
 
-Score 0-1 (Skip):
-- Chains, franchises, or multi-location businesses of any kind
-- Tourist traps, gift shops attached to gas stations
-- Suspiciously perfect 5.0 ratings with <10 reviews
-- Places with generic names and no distinguishing character
-
-Here are the candidates:
+Candidates:
 ${JSON.stringify(candidates, null, 2)}`;
 
   try {

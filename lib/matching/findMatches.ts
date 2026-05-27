@@ -19,11 +19,11 @@ const MILES_TO_METERS = 1609.344;
 const SAMPLE_RADIUS_M = 15 * MILES_TO_METERS;
 const SAMPLE_SPACING_M = 13 * MILES_TO_METERS;
 const MAX_SAMPLES = 25;
-const CORRIDOR_RADIUS_M = 12 * MILES_TO_METERS;
-const MAX_CANDIDATES_FOR_DETOUR = 50;
+const CORRIDOR_RADIUS_M = 18 * MILES_TO_METERS;
+const MAX_CANDIDATES_FOR_DETOUR = 120;
 const MAX_DISPLAY = 50;
 /** Max keywords to search per interest. Keeps API call count manageable. */
-const MAX_KEYWORDS_PER_INTEREST = 2;
+const MAX_KEYWORDS_PER_INTEREST = 3;
 
 /** Pick `n` random items from an array (Fisher-Yates on a copy). */
 function shuffleAndTake<T>(arr: T[], n: number): T[] {
@@ -335,13 +335,23 @@ export async function findMatches(
     sharedInterests.map((i) => [i.slug, i.category]),
   );
 
-  // Deduplicate by name first.
+  // Dedup only when names match AND places are within 5km of each other
+  // (likely the same physical place returned via different keywords). Keep
+  // legitimately distinct places that happen to share a name.
+  const DEDUP_RADIUS_M = 5000;
   const deduped: MatchResult[] = [];
-  const seenNames = new Set<string>();
+  const seenByName = new Map<string, MatchResult[]>();
   for (const r of sorted) {
     const normName = r.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (seenNames.has(normName)) continue;
-    seenNames.add(normName);
+    const existing = seenByName.get(normName) ?? [];
+    const isDupe = existing.some((other) => {
+      const dx = (other.lat - r.lat) * 111000;
+      const dy = (other.lng - r.lng) * 111000;
+      return Math.sqrt(dx * dx + dy * dy) < DEDUP_RADIUS_M;
+    });
+    if (isDupe) continue;
+    existing.push(r);
+    seenByName.set(normName, existing);
     deduped.push(r);
   }
 

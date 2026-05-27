@@ -315,7 +315,7 @@ export function MatchList({
                                 {m.name}
                               </div>
                               {m.editorial_reasoning && !m.editorial_reasoning.includes("fallback") && (
-                                <div className="line-clamp-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+                                <div className="line-clamp-2 text-[0.75rem] leading-snug text-muted-foreground">
                                   {m.editorial_reasoning}
                                 </div>
                               )}
