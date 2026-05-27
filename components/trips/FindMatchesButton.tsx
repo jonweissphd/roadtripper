@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -18,10 +18,12 @@ export function FindMatchesButton({
   tripId,
   label = "Find our matches",
   isExplore = false,
+  autoStart = false,
 }: {
   tripId: string;
   label?: string;
   isExplore?: boolean;
+  autoStart?: boolean;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +63,20 @@ export function FindMatchesButton({
     }
     throw new Error("Match computation timed out. Please try again.");
   }
+
+  const hasAutoStarted = useRef(false);
+
+  useEffect(() => {
+    if (autoStart && !hasAutoStarted.current) {
+      hasAutoStarted.current = true;
+      // Strip the ?autoSearch param so refresh doesn't re-trigger.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("autoSearch");
+      window.history.replaceState({}, "", url.toString());
+      run();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   async function run() {
     setIsLoading(true);

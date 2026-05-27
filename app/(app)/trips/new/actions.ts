@@ -78,5 +78,5 @@ export async function createTrip(formData: FormData) {
     );
   }
 
-  redirect(`/trips/${trip.id}`);
+  redirect(`/trips/${trip.id}?autoSearch=1`);
 }

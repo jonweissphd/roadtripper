@@ -21,10 +21,13 @@ function timeAgo(iso: string): string {
 
 export default async function TripDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tripId: string }>;
+  searchParams: Promise<{ autoSearch?: string }>;
 }) {
   const { tripId } = await params;
+  const { autoSearch } = await searchParams;
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
   if (!user) redirect("/login");
@@ -306,6 +309,7 @@ export default async function TripDetailPage({
             <FindMatchesButton
               tripId={tripId}
               isExplore={isExplore}
+              autoStart={autoSearch === "1" && !trip.matches_computed_at}
               label={
                 trip.matches_computed_at
                   ? trip.guest_id && !trip.matches_combined
