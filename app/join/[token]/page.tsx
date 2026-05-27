@@ -29,7 +29,7 @@ export default async function JoinPage({
       <main className="mx-auto flex w-full max-w-md flex-col items-center px-6 py-20 text-center">
         <Link
           href="/"
-          className="text-sm font-medium tracking-[-0.01em] text-foreground/80 transition-colors hover:text-foreground"
+          className="text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:text-foreground/70"
         >
           Detour
         </Link>
@@ -68,7 +68,7 @@ export default async function JoinPage({
       <main className="mx-auto flex w-full max-w-md flex-col items-center px-6 py-20 text-center">
         <Link
           href="/"
-          className="text-sm font-medium tracking-[-0.01em] text-foreground/80 transition-colors hover:text-foreground"
+          className="text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:text-foreground/70"
         >
           Detour
         </Link>
@@ -102,8 +102,8 @@ export default async function JoinPage({
 
       <div className="mt-14 space-y-4 text-center">
         <Eyebrow>Trip invite</Eyebrow>
-        <h1 className="text-pretty text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-3xl">
-          <span className="font-semibold">{creatorName}</span>{" "}
+        <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
+          <span className="font-bold">{creatorName}</span>{" "}
           <span className="text-muted-foreground">invited you on a road trip</span>
         </h1>
       </div>
@@ -111,7 +111,7 @@ export default async function JoinPage({
       <div className="mt-7 rounded-xl border border-border/70 bg-card px-5 py-5 text-center">
         <div className="space-y-3">
           <div className="space-y-1">
-            <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               From
             </div>
             <div className="text-sm font-medium">{trip.origin_address}</div>
@@ -120,7 +120,7 @@ export default async function JoinPage({
             ↓
           </div>
           <div className="space-y-1">
-            <div className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               To
             </div>
             <div className="text-sm font-medium">{trip.dest_address}</div>

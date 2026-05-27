@@ -53,107 +53,108 @@
 }
 
 /*
-  Detour palette — restrained, paper-warm, single ink-green accent.
-  Hue 130 (warm-leaning green) for everything: neutrals carry chroma 0.004–0.012,
-  the primary accent carries 0.075. No pure black, no pure white.
+  Detour palette — warm, editorial, cream-paper feel.
+  Inspired by Touchy Coffee: warm cream backgrounds, deep olive-ink accent,
+  generous breathing room. Hue shifted toward warm olive (140–150) with
+  cream-toned neutrals on hue 80 (warm yellow-green undertone).
 */
 
 :root {
-  --background: oklch(0.985 0.004 130);
-  --foreground: oklch(0.18 0.015 130);
+  --background: oklch(0.975 0.008 85);
+  --foreground: oklch(0.16 0.02 145);
 
-  --card: oklch(1 0.002 130);
-  --card-foreground: oklch(0.18 0.015 130);
+  --card: oklch(0.985 0.006 85);
+  --card-foreground: oklch(0.16 0.02 145);
 
-  --popover: oklch(1 0.002 130);
-  --popover-foreground: oklch(0.18 0.015 130);
+  --popover: oklch(0.985 0.006 85);
+  --popover-foreground: oklch(0.16 0.02 145);
 
-  --primary: oklch(0.38 0.08 145);
-  --primary-foreground: oklch(0.985 0.004 130);
+  --primary: oklch(0.35 0.06 150);
+  --primary-foreground: oklch(0.97 0.006 85);
 
-  --secondary: oklch(0.95 0.008 130);
-  --secondary-foreground: oklch(0.25 0.015 130);
+  --secondary: oklch(0.94 0.01 85);
+  --secondary-foreground: oklch(0.22 0.02 145);
 
-  --muted: oklch(0.96 0.006 130);
-  --muted-foreground: oklch(0.48 0.013 130);
+  --muted: oklch(0.955 0.008 85);
+  --muted-foreground: oklch(0.45 0.015 145);
 
-  --accent: oklch(0.94 0.012 130);
-  --accent-foreground: oklch(0.25 0.015 130);
+  --accent: oklch(0.93 0.014 85);
+  --accent-foreground: oklch(0.22 0.02 145);
 
   --destructive: oklch(0.52 0.18 25);
   --success: oklch(0.55 0.09 150);
-  --success-foreground: oklch(0.985 0.004 130);
+  --success-foreground: oklch(0.97 0.006 85);
   --warning: oklch(0.72 0.13 75);
   --warning-foreground: oklch(0.22 0.04 75);
 
-  --border: oklch(0.9 0.008 130);
-  --input: oklch(0.9 0.008 130);
-  --ring: oklch(0.55 0.06 145);
+  --border: oklch(0.91 0.01 85);
+  --input: oklch(0.91 0.01 85);
+  --ring: oklch(0.50 0.05 150);
 
-  --chart-1: oklch(0.55 0.08 145);
+  --chart-1: oklch(0.50 0.06 150);
   --chart-2: oklch(0.65 0.07 100);
   --chart-3: oklch(0.62 0.1 45);
   --chart-4: oklch(0.5 0.06 200);
   --chart-5: oklch(0.42 0.05 290);
 
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --sidebar: oklch(0.97 0.006 130);
-  --sidebar-foreground: oklch(0.18 0.015 130);
-  --sidebar-primary: oklch(0.38 0.08 145);
-  --sidebar-primary-foreground: oklch(0.985 0.004 130);
-  --sidebar-accent: oklch(0.94 0.012 130);
-  --sidebar-accent-foreground: oklch(0.25 0.015 130);
-  --sidebar-border: oklch(0.9 0.008 130);
-  --sidebar-ring: oklch(0.55 0.06 145);
+  --sidebar: oklch(0.97 0.006 85);
+  --sidebar-foreground: oklch(0.18 0.015 85);
+  --sidebar-primary: oklch(0.35 0.06 150);
+  --sidebar-primary-foreground: oklch(0.97 0.006 85);
+  --sidebar-accent: oklch(0.94 0.012 85);
+  --sidebar-accent-foreground: oklch(0.25 0.015 85);
+  --sidebar-border: oklch(0.91 0.01 85);
+  --sidebar-ring: oklch(0.50 0.05 150);
 }
 
 .dark {
-  --background: oklch(0.16 0.012 130);
-  --foreground: oklch(0.95 0.006 130);
+  --background: oklch(0.16 0.01 85);
+  --foreground: oklch(0.95 0.006 85);
 
-  --card: oklch(0.205 0.013 130);
-  --card-foreground: oklch(0.95 0.006 130);
+  --card: oklch(0.20 0.01 85);
+  --card-foreground: oklch(0.95 0.006 85);
 
-  --popover: oklch(0.205 0.013 130);
-  --popover-foreground: oklch(0.95 0.006 130);
+  --popover: oklch(0.20 0.01 85);
+  --popover-foreground: oklch(0.95 0.006 85);
 
-  --primary: oklch(0.78 0.085 145);
-  --primary-foreground: oklch(0.16 0.012 130);
+  --primary: oklch(0.78 0.07 150);
+  --primary-foreground: oklch(0.16 0.01 85);
 
-  --secondary: oklch(0.25 0.014 130);
-  --secondary-foreground: oklch(0.95 0.006 130);
+  --secondary: oklch(0.25 0.01 85);
+  --secondary-foreground: oklch(0.95 0.006 85);
 
-  --muted: oklch(0.25 0.014 130);
-  --muted-foreground: oklch(0.66 0.014 130);
+  --muted: oklch(0.25 0.01 85);
+  --muted-foreground: oklch(0.66 0.012 85);
 
-  --accent: oklch(0.27 0.016 130);
-  --accent-foreground: oklch(0.95 0.006 130);
+  --accent: oklch(0.27 0.012 85);
+  --accent-foreground: oklch(0.95 0.006 85);
 
   --destructive: oklch(0.68 0.18 25);
   --success: oklch(0.72 0.1 150);
-  --success-foreground: oklch(0.16 0.012 130);
+  --success-foreground: oklch(0.16 0.01 85);
   --warning: oklch(0.78 0.13 75);
   --warning-foreground: oklch(0.18 0.04 75);
 
-  --border: oklch(1 0.002 130 / 10%);
-  --input: oklch(1 0.002 130 / 14%);
-  --ring: oklch(0.6 0.06 145);
+  --border: oklch(1 0.002 85 / 10%);
+  --input: oklch(1 0.002 85 / 14%);
+  --ring: oklch(0.6 0.05 150);
 
-  --chart-1: oklch(0.78 0.085 145);
+  --chart-1: oklch(0.78 0.07 150);
   --chart-2: oklch(0.72 0.08 100);
   --chart-3: oklch(0.7 0.1 45);
   --chart-4: oklch(0.62 0.07 200);
   --chart-5: oklch(0.58 0.06 290);
 
-  --sidebar: oklch(0.205 0.013 130);
-  --sidebar-foreground: oklch(0.95 0.006 130);
-  --sidebar-primary: oklch(0.78 0.085 145);
-  --sidebar-primary-foreground: oklch(0.16 0.012 130);
-  --sidebar-accent: oklch(0.27 0.016 130);
-  --sidebar-accent-foreground: oklch(0.95 0.006 130);
-  --sidebar-border: oklch(1 0.002 130 / 10%);
-  --sidebar-ring: oklch(0.6 0.06 145);
+  --sidebar: oklch(0.20 0.01 85);
+  --sidebar-foreground: oklch(0.95 0.006 85);
+  --sidebar-primary: oklch(0.78 0.07 150);
+  --sidebar-primary-foreground: oklch(0.16 0.01 85);
+  --sidebar-accent: oklch(0.27 0.012 85);
+  --sidebar-accent-foreground: oklch(0.95 0.006 85);
+  --sidebar-border: oklch(1 0.002 85 / 10%);
+  --sidebar-ring: oklch(0.6 0.05 150);
 }
 
 @layer base {
@@ -172,13 +173,14 @@
   h2,
   h3 {
     text-wrap: balance;
-    letter-spacing: -0.018em;
+    letter-spacing: -0.02em;
   }
   h1 {
-    letter-spacing: -0.022em;
+    letter-spacing: -0.025em;
   }
   p {
     text-wrap: pretty;
+    line-height: 1.7;
   }
   /* Tabular numbers everywhere they show up as data */
   [data-tabular] {
@@ -186,9 +188,9 @@
   }
 }
 
-/* Eyebrow: small-caps style label used as section headers across the app. */
+/* Eyebrow: editorial wide-spaced label. Touchy Coffee inspired. */
 @utility eyebrow {
-  @apply text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  @apply text-[0.625rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground;
 }
 
 /* Override Google Maps' PlaceAutocompleteElement to match our input system.

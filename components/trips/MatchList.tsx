@@ -23,16 +23,16 @@ export type MatchRow = {
 };
 
 const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
-  food: { label: "Food", emoji: "🍕" },
-  drinks: { label: "Drinks", emoji: "☕" },
-  nightlife: { label: "Nightlife", emoji: "🌙" },
-  shopping: { label: "Shopping", emoji: "🛍️" },
-  outdoor: { label: "Outdoors", emoji: "🌿" },
-  fitness: { label: "Fitness", emoji: "💪" },
-  activities: { label: "Activities", emoji: "🎯" },
-  culture: { label: "Culture", emoji: "🎨" },
-  animals: { label: "Animals", emoji: "🐾" },
-  quirky: { label: "Quirky", emoji: "✨" },
+  food: { label: "Food", emoji: "" },
+  drinks: { label: "Drinks", emoji: "" },
+  nightlife: { label: "Nightlife", emoji: "" },
+  shopping: { label: "Shopping", emoji: "" },
+  outdoor: { label: "Outdoors", emoji: "" },
+  fitness: { label: "Fitness", emoji: "" },
+  activities: { label: "Activities", emoji: "" },
+  culture: { label: "Culture", emoji: "" },
+  animals: { label: "Animals", emoji: "" },
+  quirky: { label: "Quirky", emoji: "" },
 };
 
 const CATEGORY_ORDER = [
@@ -153,21 +153,21 @@ export function MatchList({
     <div className="space-y-6">
       {/* Category filter tabs */}
       {categoryList.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => setActiveCategory(null)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
               activeCategory === null
                 ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-muted-foreground hover:text-foreground",
+                : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
             )}
           >
             All ({matches.length})
           </button>
           {categoryList.map((cat) => {
-            const meta = CATEGORY_META[cat] ?? { label: cat, emoji: "•" };
+            const meta = CATEGORY_META[cat] ?? { label: cat, emoji: "" };
             const count = grouped[cat]?.length ?? 0;
             return (
               <button
@@ -175,13 +175,13 @@ export function MatchList({
                 type="button"
                 onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
                 className={cn(
-                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "rounded-full border px-4 py-2 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] transition-colors",
                   activeCategory === cat
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground",
+                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30",
                 )}
               >
-                {meta.emoji} {meta.label} ({count})
+                {meta.label} ({count})
               </button>
             );
           })}
@@ -207,14 +207,13 @@ export function MatchList({
           const hasMore = visible.length < items.length;
 
           return (
-            <section key={cat} className="space-y-3">
-              <div className="flex items-baseline justify-between gap-3 border-b border-border/70 pb-2">
-                <h3 className="text-sm font-semibold tracking-tight">
-                  <span className="mr-1.5">{meta.emoji}</span>
+            <section key={cat} className="space-y-4">
+              <div className="flex items-baseline justify-between gap-3 border-b border-border/50 pb-3">
+                <h3 className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-foreground">
                   {meta.label}
                 </h3>
-                <span className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  {items.length} {items.length === 1 ? "place" : "places"}
+                <span className="text-[0.625rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  {items.length}
                 </span>
               </div>
 
@@ -235,8 +234,8 @@ export function MatchList({
                     >
                       <div
                         className={cn(
-                          "flex items-start gap-2 rounded-lg px-2 py-3 transition-colors duration-150 ease-out",
-                          isSelected ? "bg-muted/70" : "hover:bg-muted/50",
+                          "flex items-start gap-2.5 rounded-xl px-2.5 py-4 transition-colors duration-200 ease-out",
+                          isSelected ? "bg-accent/60" : "hover:bg-accent/40",
                         )}
                       >
                         {onToggle && (
@@ -262,37 +261,37 @@ export function MatchList({
                           href={`/trips/${tripId}/place/${encodeURIComponent(m.google_place_id)}`}
                           className="block min-w-0 flex-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/35"
                         >
-                          <div className="flex gap-3">
+                          <div className="space-y-3">
                             {m.primary_photo_id && (
                               <img
-                                src={`/api/places/photo?name=${encodeURIComponent(m.primary_photo_id)}&max=240`}
+                                src={`/api/places/photo?name=${encodeURIComponent(m.primary_photo_id)}&max=400`}
                                 alt=""
-                                className="size-16 shrink-0 rounded-lg object-cover"
+                                className="aspect-[4/3] w-full rounded-lg object-cover"
                                 loading="lazy"
                               />
                             )}
-                            <div className="min-w-0 flex-1 space-y-1">
-                              <div className="text-sm font-semibold leading-snug">
+                            <div className="space-y-1.5">
+                              <div className="text-[0.8125rem] font-semibold leading-snug tracking-tight">
                                 {m.name}
                               </div>
                               {m.editorial_reasoning && !m.editorial_reasoning.includes("fallback") && (
-                                <div className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                                <div className="line-clamp-2 text-[0.75rem] leading-relaxed text-muted-foreground">
                                   {m.editorial_reasoning}
                                 </div>
                               )}
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5">
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-[0.6875rem] text-muted-foreground">
                                 {m.rating != null && (
-                                  <span className="text-xs font-medium">
+                                  <span className="font-medium text-foreground">
                                     {m.rating.toFixed(1)}
                                     <span className="ml-0.5 text-muted-foreground">★</span>
                                     {m.review_count != null && (
-                                      <span className="ml-0.5 font-normal text-muted-foreground">
+                                      <span className="ml-0.5 font-normal">
                                         ({m.review_count})
                                       </span>
                                     )}
                                   </span>
                                 )}
-                                <span className="text-xs text-muted-foreground">
+                                <span>
                                   {isExplore ? "~" : "+"}{Math.round(m.detour_seconds / 60)} min{isExplore ? " away" : ""}
                                 </span>
                                 <a
@@ -300,7 +299,7 @@ export function MatchList({
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="text-xs font-medium text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
+                                  className="font-medium underline decoration-muted-foreground/30 underline-offset-2 transition-colors hover:text-foreground hover:decoration-foreground/50"
                                 >
                                   Maps
                                 </a>
@@ -318,7 +317,7 @@ export function MatchList({
                 <button
                   type="button"
                   onClick={() => showMore(cat)}
-                  className="w-full rounded-lg border border-border bg-background py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                  className="w-full rounded-lg border border-border bg-background py-2.5 text-[0.6875rem] font-semibold uppercase tracking-[0.1em] text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
                 >
                   Show {Math.min(LOAD_MORE, items.length - visible.length)} more
                 </button>

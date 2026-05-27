@@ -9,7 +9,7 @@ export function Eyebrow({
     <span
       data-slot="eyebrow"
       className={cn(
-        "text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground",
+        "text-[0.625rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground",
         className,
       )}
       {...props}

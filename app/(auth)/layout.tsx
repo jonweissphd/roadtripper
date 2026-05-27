@@ -17,7 +17,7 @@ export default async function AuthLayout({
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col">
         <Link
           href="/"
-          className="self-center text-sm font-medium tracking-[-0.01em] text-foreground/80 transition-colors hover:text-foreground"
+          className="self-center text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:text-foreground/70"
         >
           Detour
         </Link>

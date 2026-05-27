@@ -103,7 +103,7 @@ export default async function PlaceDetailPage({
 
       <header className="mt-8 space-y-3 sm:mt-10">
         <Eyebrow>Place</Eyebrow>
-        <h1 className="text-pretty text-3xl font-semibold leading-tight tracking-tight sm:text-[2rem]">
+        <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
           {match.name}
         </h1>
         {match.formatted_address && (

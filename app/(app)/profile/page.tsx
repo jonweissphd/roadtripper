@@ -66,10 +66,10 @@ export default async function ProfilePage({
   const canStartTrip = selectedIds.length >= MIN_INTERESTS_FOR_TRIP;
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12 sm:py-14">
-      <div className="space-y-2 pb-8">
+    <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-8 sm:py-16">
+      <div className="space-y-3 pb-10">
         <Eyebrow>Your profile</Eyebrow>
-        <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+        <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
           What do you love?
         </h1>
         <p className="text-[0.8125rem] text-muted-foreground">{user.email}</p>
@@ -141,10 +141,10 @@ export default async function ProfilePage({
 
       {/* Sticky bottom bar */}
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-6 py-3">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-6 py-3 sm:px-8">
           <div className="text-xs text-muted-foreground">
             {canStartTrip ? (
-              saved ? "✓ Saved!" : `${selectedIds.length} interests selected`
+              saved ? "Saved" : `${selectedIds.length} interests selected`
             ) : (
               `Pick at least ${MIN_INTERESTS_FOR_TRIP} interests (${selectedIds.length}/${MIN_INTERESTS_FOR_TRIP})`
             )}
@@ -160,7 +160,7 @@ export default async function ProfilePage({
                 formAction={saveProfileAndGo}
                 size="sm"
               >
-                🚗 Let&apos;s Detour →
+                Let&apos;s Detour &rarr;
               </Button>
             )}
           </div>

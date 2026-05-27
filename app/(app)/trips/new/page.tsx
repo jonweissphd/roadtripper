@@ -9,10 +9,10 @@ export default async function NewTripPage({
   const { error, mode } = await searchParams;
 
   return (
-    <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16">
+    <main className="mx-auto w-full max-w-xl px-6 py-12 sm:px-8 sm:py-16">
       <div className="space-y-3 pb-10">
         <Eyebrow>New adventure</Eyebrow>
-        <h1 className="text-[1.75rem] font-semibold tracking-tight sm:text-[2rem]">
+        <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
           Where are you headed?
         </h1>
         <p className="max-w-[44ch] text-[0.9375rem] leading-relaxed text-muted-foreground">

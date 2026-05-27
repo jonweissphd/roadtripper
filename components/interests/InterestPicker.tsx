@@ -130,7 +130,7 @@ export function InterestPicker({
 
       {groups.map((group) => (
         <div key={group.category} className="space-y-3">
-          <h3 className="text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <h3 className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
             {CATEGORY_LABELS[group.category] ?? group.category}
           </h3>
           <div className="flex flex-wrap gap-2">

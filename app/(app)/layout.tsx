@@ -20,25 +20,38 @@ export default async function AppLayout({
           DEV_BYPASS_AUTH is on — auth is faked. Unset before deploying.
         </div>
       )}
-      <header className="border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-3.5">
+      <header className="border-b border-border/50">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4 sm:px-8 sm:py-5">
           <Link
             href="/profile"
-            className="flex items-center gap-2 text-[0.95rem] font-semibold tracking-[-0.01em] transition-colors hover:text-foreground/80"
+            className="text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-foreground transition-colors hover:text-foreground/70"
           >
-            <span className="text-lg">🗺️</span>
             Detour
           </Link>
-          {!DEV_BYPASS_ENABLED && (
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Sign out
-              </button>
-            </form>
-          )}
+          <nav className="flex items-center gap-5">
+            <Link
+              href="/profile"
+              className="text-[0.75rem] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Interests
+            </Link>
+            <Link
+              href="/trips/new"
+              className="text-[0.75rem] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              New trip
+            </Link>
+            {!DEV_BYPASS_ENABLED && (
+              <form action={signOut}>
+                <button
+                  type="submit"
+                  className="text-[0.75rem] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Sign out
+                </button>
+              </form>
+            )}
+          </nav>
         </div>
       </header>
       <div className="flex flex-1 flex-col">{children}</div>

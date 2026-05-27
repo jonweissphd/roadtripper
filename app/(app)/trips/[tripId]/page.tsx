@@ -147,19 +147,18 @@ export default async function TripDetailPage({
   const inviteUrl = `${appUrl}/join/${trip.invite_token}`;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10 sm:py-14">
-      <header className="space-y-2 pb-8">
+    <main className="mx-auto w-full max-w-5xl px-6 py-12 sm:px-8 sm:py-16">
+      <header className="space-y-3 pb-10">
         <Eyebrow>{isExplore ? "Exploring" : "Your trip"}</Eyebrow>
         {isExplore ? (
-          <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
-            <span className="mr-2">📍</span>
-            <span className="text-foreground">{trip.origin_address}</span>
+          <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
+            {trip.origin_address}
           </h1>
         ) : (
-          <h1 className="text-pretty text-2xl font-semibold leading-tight tracking-tight sm:text-[1.75rem]">
-            <span className="text-foreground">{trip.origin_address}</span>
-            <span className="px-2 text-muted-foreground/70">→</span>
-            <span className="text-foreground">{trip.dest_address}</span>
+          <h1 className="text-pretty text-[1.75rem] font-bold leading-tight tracking-tight sm:text-[2.25rem]">
+            <span>{trip.origin_address}</span>
+            <span className="px-3 text-muted-foreground/50">→</span>
+            <span>{trip.dest_address}</span>
           </h1>
         )}
       </header>

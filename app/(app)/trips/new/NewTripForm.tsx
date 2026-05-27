@@ -26,25 +26,25 @@ export function NewTripForm({
           type="button"
           onClick={() => setMode("roadtrip")}
           className={cn(
-            "flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors",
+            "flex-1 rounded-md px-4 py-2.5 text-[0.75rem] font-semibold uppercase tracking-[0.1em] transition-colors",
             mode === "roadtrip"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          🚗 Road trip
+          Road trip
         </button>
         <button
           type="button"
           onClick={() => setMode("explore")}
           className={cn(
-            "flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-colors",
+            "flex-1 rounded-md px-4 py-2.5 text-[0.75rem] font-semibold uppercase tracking-[0.1em] transition-colors",
             mode === "explore"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
-          📍 Explore area
+          Explore area
         </button>
       </div>
 
