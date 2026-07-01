@@ -18,10 +18,14 @@ export async function POST(req: NextRequest) {
   const favorites = Array.isArray(body.favorites) ? body.favorites : [];
   const platforms = Array.isArray(body.platforms) ? body.platforms : [];
   const hidden = Array.isArray(body.hidden) ? body.hidden : [];
+  const region =
+    typeof body.region === "string" && body.region
+      ? body.region
+      : process.env.TMDB_REGION || "US";
 
   try {
     assertConfigured();
-    const result = await recommend({ favorites, platforms, hidden });
+    const result = await recommend({ favorites, platforms, hidden, region });
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Recommendation failed";

@@ -54,6 +54,8 @@ export interface RecommendRequest {
   platforms: number[];
   /** (mediaType:id) keys the user marked "not interested". */
   hidden: string[];
+  /** ISO 3166-1 region for availability lookups, e.g. "US". */
+  region?: string;
 }
 
 export interface RecommendResponse {

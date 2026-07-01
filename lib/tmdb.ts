@@ -170,20 +170,118 @@ export async function similarTo(
 
 /**
  * Streaming providers (flatrate = included with subscription) for a title in the
- * configured region. Returns the set of provider ids.
+ * given region. Returns the set of provider ids.
  */
 export async function flatrateProviders(
   mediaType: MediaType,
   id: number,
+  region: string = REGION,
 ): Promise<number[]> {
   const url = withKey(`/${mediaType}/${id}/watch/providers`, {});
   try {
     const data = await getJSON<{
       results?: Record<string, { flatrate?: Array<{ provider_id: number }> }>;
     }>(url, DAY);
-    const region = data.results?.[REGION];
-    if (!region?.flatrate) return [];
-    return region.flatrate.map((p) => p.provider_id);
+    const forRegion = data.results?.[region];
+    if (!forRegion?.flatrate) return [];
+    return forRegion.flatrate.map((p) => p.provider_id);
+  } catch {
+    return [];
+  }
+}
+
+// --- Taste "affinity" signals: cast, director/creator, keywords -----------
+export interface Person {
+  id: number;
+  name: string;
+  role: "Director" | "Creator" | "Cast";
+}
+export interface TitleDetails {
+  genreIds: number[];
+  keywords: Array<{ id: number; name: string }>;
+  people: Person[];
+}
+
+interface DetailsResponse {
+  genres?: Array<{ id: number }>;
+  created_by?: Array<{ id: number; name: string }>;
+  keywords?: {
+    keywords?: Array<{ id: number; name: string }>; // movies
+    results?: Array<{ id: number; name: string }>; // tv
+  };
+  credits?: {
+    cast?: Array<{ id: number; name: string }>;
+    crew?: Array<{ id: number; name: string; job: string }>;
+  };
+}
+
+/** Cast, director/creator and keywords for a title — the affinity fingerprint. */
+export async function titleDetails(
+  mediaType: MediaType,
+  id: number,
+): Promise<TitleDetails> {
+  const url = withKey(`/${mediaType}/${id}`, {
+    append_to_response: "credits,keywords",
+    language: "en-US",
+  });
+  try {
+    const data = await getJSON<DetailsResponse>(url, DAY);
+    const genreIds = (data.genres ?? []).map((g) => g.id);
+    const kwArr =
+      mediaType === "movie" ? data.keywords?.keywords : data.keywords?.results;
+    const keywords = (kwArr ?? [])
+      .slice(0, 10)
+      .map((k) => ({ id: k.id, name: k.name }));
+
+    const people: Person[] = [];
+    for (const c of (data.credits?.cast ?? []).slice(0, 4)) {
+      people.push({ id: c.id, name: c.name, role: "Cast" });
+    }
+    if (mediaType === "movie") {
+      for (const c of (data.credits?.crew ?? []).filter(
+        (m) => m.job === "Director",
+      )) {
+        people.push({ id: c.id, name: c.name, role: "Director" });
+      }
+    } else {
+      for (const c of (data.created_by ?? []).slice(0, 2)) {
+        people.push({ id: c.id, name: c.name, role: "Creator" });
+      }
+    }
+    return { genreIds, keywords, people };
+  } catch {
+    return { genreIds: [], keywords: [], people: [] };
+  }
+}
+
+/**
+ * Discover titles filtered to a specific affinity signal (a person or a keyword)
+ * AND to titles streaming on the given providers in the region. Because the
+ * provider filter is applied server-side by TMDb, everything returned is already
+ * available on the user's services.
+ */
+export async function discover(opts: {
+  mediaType: MediaType;
+  region: string;
+  providers: number[];
+  withPerson?: number;
+  withKeyword?: number;
+}): Promise<NormalizedTitle[]> {
+  const params: Record<string, string> = {
+    language: "en-US",
+    page: "1",
+    sort_by: "popularity.desc",
+    watch_region: opts.region,
+    with_watch_providers: opts.providers.join("|"),
+    with_watch_monetization_types: "flatrate",
+    "vote_count.gte": "20",
+  };
+  if (opts.withPerson) params.with_people = String(opts.withPerson);
+  if (opts.withKeyword) params.with_keywords = String(opts.withKeyword);
+  const url = withKey(`/discover/${opts.mediaType}`, params);
+  try {
+    const data = await getJSON<{ results: TmdbTitle[] }>(url, DAY);
+    return data.results.map((r) => normalize(r, opts.mediaType));
   } catch {
     return [];
   }

@@ -22,8 +22,14 @@ Everything runs on free, official data from **[TMDb](https://www.themoviedb.org/
 - `/{movie,tv}/{id}/recommendations` and `/similar` — candidate picks derived
   from each favorite. Candidates are scored by how many of your favorites point
   to them, weighted so **super-likes count ~3×** a normal like.
+- `/{movie,tv}/{id}` (credits + keywords) — builds a **taste fingerprint** of the
+  cast, directors/creators, and themes you gravitate toward, then uses
+  `/discover` (with a provider filter) to surface more titles matching those
+  people and keywords. So recs aren't only "others also liked" — they also follow
+  *your* actors, directors, and themes.
 - `/{movie,tv}/{id}/watch/providers` — streaming availability (powered by
-  JustWatch), used to keep only titles available on your enabled services.
+  JustWatch), used to keep only titles available on your enabled services, in the
+  **region** you select.
 
 Your TMDb credential lives only on the server; the browser talks to local
 `/api/tmdb/*` routes, so the key is never exposed.
@@ -80,7 +86,9 @@ components/       # PlatformToggles, AddTitleSearch, TasteList, Recommendations
 
 ## Possible next steps
 
+- **Deep links** ("Play on Netflix" buttons): TMDb can't provide these (JustWatch
+  agreement), but a small-quota API like Watchmode or the Streaming Availability
+  API can be layered in *on-demand per click* to add them cheaply.
 - Optional cloud sync of your taste list across devices.
-- Region selector for non-US availability.
+- Region-specific provider maps for fully accurate non-US availability.
 - "Hide" list management UI and a "surprise me" wildcard.
-- Actor/director/keyword affinity on top of title-to-title recommendations.

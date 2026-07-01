@@ -14,6 +14,7 @@ import { PlatformToggles } from "@/components/PlatformToggles";
 import { AddTitleSearch } from "@/components/AddTitleSearch";
 import { TasteList } from "@/components/TasteList";
 import { Recommendations } from "@/components/Recommendations";
+import { RegionSelect } from "@/components/RegionSelect";
 
 // Sensible first-run defaults so the app isn't empty on arrival.
 const DEFAULT_PLATFORMS = [8, 15, 337, 1899, 9]; // Netflix, Hulu, Disney+, Max, Prime
@@ -28,12 +29,16 @@ export default function Home() {
     DEFAULT_PLATFORMS,
   );
   const [hidden, setHidden] = useLocalStore<string[]>("sr:hidden", []);
+  const [region, setRegion, regionHydrated] = useLocalStore<string>(
+    "sr:region",
+    "US",
+  );
 
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [note, setNote] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
 
-  const hydrated = favHydrated && platHydrated;
+  const hydrated = favHydrated && platHydrated && regionHydrated;
 
   // --- taste list mutations ------------------------------------------------
   const addFavorite = useCallback(
@@ -137,6 +142,7 @@ export default function Home() {
             })),
             platforms,
             hidden,
+            region,
           }),
         });
         const data = (await res.json()) as RecommendResponse & {
@@ -160,7 +166,7 @@ export default function Home() {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [favorites, platforms, hidden, hydrated]);
+  }, [favorites, platforms, hidden, region, hydrated]);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
@@ -174,6 +180,7 @@ export default function Home() {
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_1fr]">
         <aside className="space-y-6">
+          <RegionSelect value={region} onChange={setRegion} />
           <PlatformToggles enabled={platforms} onToggle={togglePlatform} />
 
           <div>
