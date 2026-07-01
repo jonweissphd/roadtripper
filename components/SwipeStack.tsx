@@ -7,7 +7,7 @@ const THRESHOLD = 110;
 // How long the fly-off animation runs before the card is removed.
 const FLY_MS = 320;
 
-type Dir = "left" | "right" | "up";
+export type SwipeDir = "left" | "right" | "up";
 
 export interface DeckAction {
   label: string; // overlay text, e.g. "SAVE"
@@ -22,6 +22,8 @@ interface SwipeStackProps<T> {
   onLeft: (item: T) => void;
   onUp: (item: T) => void;
   onRight: (item: T) => void;
+  /** Reverse the side effect of a swipe (for undo). */
+  onUndo?: (item: T, dir: SwipeDir) => void;
   left: DeckAction; // negative action (rose)
   up: DeckAction; // strong action (sky)
   right: DeckAction; // positive action (emerald)
@@ -41,6 +43,7 @@ export function SwipeStack<T>({
   onLeft,
   onUp,
   onRight,
+  onUndo,
   left,
   up,
   right,
@@ -53,6 +56,7 @@ export function SwipeStack<T>({
 }: SwipeStackProps<T>) {
   const [queue, setQueue] = useState<T[]>([]);
   const acted = useRef<Set<string>>(new Set());
+  const [history, setHistory] = useState<Array<{ item: T; dir: SwipeDir }>>([]);
   const [drag, setDrag] = useState({ x: 0, y: 0, active: false });
   const [leaving, setLeaving] = useState<{ x: number; y: number } | null>(null);
   const startPt = useRef<{ x: number; y: number } | null>(null);
@@ -71,7 +75,7 @@ export function SwipeStack<T>({
   const top = queue[0];
 
   const commit = useCallback(
-    (dir: Dir) => {
+    (dir: SwipeDir) => {
       if (!top || leaving) return;
       const target =
         dir === "right"
@@ -87,6 +91,7 @@ export function SwipeStack<T>({
         else if (dir === "up") onUp(card);
         else onLeft(card);
         setQueue((prev) => prev.slice(1));
+        setHistory((h) => [...h, { item: card, dir }]);
         setLeaving(null);
         setDrag({ x: 0, y: 0, active: false });
       }, FLY_MS);
@@ -94,16 +99,30 @@ export function SwipeStack<T>({
     [top, leaving, getKey, onRight, onUp, onLeft],
   );
 
+  const undo = useCallback(() => {
+    if (leaving || history.length === 0) return;
+    const last = history[history.length - 1];
+    acted.current.delete(getKey(last.item));
+    onUndo?.(last.item, last.dir);
+    setQueue((prev) => [last.item, ...prev]);
+    setHistory((h) => h.slice(0, -1));
+    setDrag({ x: 0, y: 0, active: false });
+  }, [leaving, history, getKey, onUndo]);
+
   useEffect(() => {
     if (disabled) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") commit("left");
       else if (e.key === "ArrowRight") commit("right");
       else if (e.key === "ArrowUp") commit("up");
+      else if (e.key === "Backspace" || e.key === "z") {
+        e.preventDefault();
+        undo();
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [commit, disabled]);
+  }, [commit, undo, disabled]);
 
   function onPointerDown(e: React.PointerEvent) {
     if (leaving || disabled) return;
@@ -139,7 +158,20 @@ export function SwipeStack<T>({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
-        {loading && <span className="text-xs text-neutral-500">updating…</span>}
+        <div className="flex items-center gap-3">
+          {loading && (
+            <span className="text-xs text-neutral-500">updating…</span>
+          )}
+          <button
+            type="button"
+            onClick={undo}
+            disabled={history.length === 0 || !!leaving || disabled}
+            title="Undo last swipe (Backspace)"
+            className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition enabled:hover:border-neutral-500 enabled:hover:text-white disabled:opacity-30"
+          >
+            ↩ Undo
+          </button>
+        </div>
       </div>
 
       {note && empty && (

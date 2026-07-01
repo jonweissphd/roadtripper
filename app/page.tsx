@@ -19,6 +19,7 @@ import { Recommendations } from "@/components/Recommendations";
 import { RegionSelect } from "@/components/RegionSelect";
 import { SwipeDeck } from "@/components/SwipeDeck";
 import { AuditDeck } from "@/components/AuditDeck";
+import type { SwipeDir } from "@/components/SwipeStack";
 import { TrailerModal, TrailerTarget } from "@/components/TrailerModal";
 
 // Sensible first-run defaults so the app isn't empty on arrival.
@@ -117,8 +118,16 @@ export default function Home() {
     [setHidden],
   );
 
+  const removeHidden = useCallback(
+    (mediaType: MediaType, id: number) => {
+      const key = favKey(mediaType, id);
+      setHidden((prev) => prev.filter((k) => k !== key));
+    },
+    [setHidden],
+  );
+
   const saveToWatchlist = useCallback(
-    (r: Recommendation | SearchResult) => {
+    (r: Recommendation | SearchResult | SavedItem) => {
       setWatchlist((prev) => {
         if (prev.some((s) => s.id === r.id && s.mediaType === r.mediaType)) {
           return prev;
@@ -154,6 +163,28 @@ export default function Home() {
       removeFromWatchlist(s.mediaType, s.id);
     },
     [addFavorite, removeFromWatchlist],
+  );
+
+  // Undo reversers — put the just-swiped card back and unwind its side effect.
+  const undoRec = useCallback(
+    (r: Recommendation, dir: SwipeDir) => {
+      if (dir === "right") removeFromWatchlist(r.mediaType, r.id); // undo save
+      else if (dir === "up") removeFavorite(r.mediaType, r.id); // undo super-like
+      else removeHidden(r.mediaType, r.id); // undo nope
+    },
+    [removeFromWatchlist, removeFavorite, removeHidden],
+  );
+
+  const undoAudit = useCallback(
+    (s: SavedItem, dir: SwipeDir) => {
+      if (dir === "left") saveToWatchlist(s); // undo remove
+      else if (dir === "up") {
+        removeFavorite(s.mediaType, s.id); // undo the taste promotion
+        saveToWatchlist(s); // put it back on the watchlist
+      }
+      // dir === "right" (keep) had no side effect to reverse.
+    },
+    [saveToWatchlist, removeFavorite],
   );
 
   const openTrailer = useCallback(
@@ -304,6 +335,7 @@ export default function Home() {
               onSave={saveToWatchlist}
               onSuperLike={(r) => addFavorite(r, true)}
               onNope={hide}
+              onUndo={undoRec}
               onOpenTrailer={openTrailer}
             />
           )}
@@ -324,6 +356,7 @@ export default function Home() {
               disabled={trailer !== null}
               onRemove={removeFromWatchlist}
               onLoved={lovedFromWatchlist}
+              onUndo={undoAudit}
               onOpenTrailer={openTrailer}
             />
           )}

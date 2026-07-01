@@ -3,7 +3,7 @@
 import type { MediaType, Recommendation } from "@/lib/types";
 import { platformName } from "@/lib/platforms";
 import { posterUrl } from "@/lib/img";
-import { SwipeStack } from "@/components/SwipeStack";
+import { SwipeStack, SwipeDir } from "@/components/SwipeStack";
 
 export function SwipeDeck({
   items,
@@ -13,6 +13,7 @@ export function SwipeDeck({
   onSave,
   onSuperLike,
   onNope,
+  onUndo,
   onOpenTrailer,
 }: {
   items: Recommendation[];
@@ -22,6 +23,7 @@ export function SwipeDeck({
   onSave: (r: Recommendation) => void;
   onSuperLike: (r: Recommendation) => void;
   onNope: (mediaType: MediaType, id: number) => void;
+  onUndo: (r: Recommendation, dir: SwipeDir) => void;
   onOpenTrailer: (r: Recommendation) => void;
 }) {
   return (
@@ -32,7 +34,7 @@ export function SwipeDeck({
       note={note}
       disabled={disabled}
       title="Swipe your picks"
-      hint="← ✕ nope · ↑ ★ super-like · → 🔖 save"
+      hint="← ✕ nope · ↑ ★ super-like · → 🔖 save · ↩ undo"
       emptyText="You're all caught up. Add more favorites for more picks."
       left={{ label: "NOPE", icon: "✕" }}
       up={{ label: "SUPER", icon: "★" }}
@@ -40,6 +42,7 @@ export function SwipeDeck({
       onLeft={(r) => onNope(r.mediaType, r.id)}
       onUp={(r) => onSuperLike(r)}
       onRight={(r) => onSave(r)}
+      onUndo={onUndo}
       renderCard={(r, isTop) => (
         <RecCard rec={r} isTop={isTop} onOpenTrailer={onOpenTrailer} />
       )}

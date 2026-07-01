@@ -16,6 +16,8 @@ list** — not by connecting any streaming accounts.
   saved titles: ← removes, → keeps, ↑ ("loved it") promotes the title into your
   taste list and clears it from the watchlist. (Both decks share one generic
   `SwipeStack`.)
+- **Undo.** Both decks support undo (the ↩ button, Backspace, or `z`): it puts
+  the card back on top and unwinds the swipe's side effect.
 - **Save vs. taste, kept separate.** A right-swipe *saves* (a "want to watch"
   marker); it doesn't pollute the taste seeds that drive recommendations. Saved
   and dismissed titles are excluded from future picks.
@@ -109,7 +111,6 @@ components/
 - **Deep links** ("Play on Netflix" buttons): TMDb can't provide these (JustWatch
   agreement), but a small-quota API like Watchmode or the Streaming Availability
   API can be layered in *on-demand per click* to add them cheaply.
-- **Undo last swipe** on either deck.
 - Optional cloud sync of your taste list and watchlist across devices.
 - Region-specific provider maps for fully accurate non-US availability.
 - "Hide" list management UI and a "surprise me" wildcard.

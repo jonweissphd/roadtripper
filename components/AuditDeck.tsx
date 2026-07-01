@@ -2,13 +2,14 @@
 
 import type { MediaType, SavedItem } from "@/lib/types";
 import { posterUrl } from "@/lib/img";
-import { SwipeStack } from "@/components/SwipeStack";
+import { SwipeStack, SwipeDir } from "@/components/SwipeStack";
 
 export function AuditDeck({
   items,
   disabled = false,
   onRemove,
   onLoved,
+  onUndo,
   onOpenTrailer,
 }: {
   items: SavedItem[];
@@ -17,6 +18,7 @@ export function AuditDeck({
   onRemove: (mediaType: MediaType, id: number) => void;
   /** "Watched & loved it" — promote to the taste list and clear from watchlist. */
   onLoved: (s: SavedItem) => void;
+  onUndo: (s: SavedItem, dir: SwipeDir) => void;
   onOpenTrailer: (s: SavedItem) => void;
 }) {
   return (
@@ -25,7 +27,7 @@ export function AuditDeck({
       getKey={(s) => `${s.mediaType}:${s.id}`}
       disabled={disabled}
       title="Audit your watchlist"
-      hint="← 🗑 remove · ↑ ★ loved it → taste · → ✓ keep"
+      hint="← 🗑 remove · ↑ ★ loved it → taste · → ✓ keep · ↩ undo"
       emptyText="Your watchlist is empty. Swipe right on recommendations to save titles here."
       left={{ label: "REMOVE", icon: "🗑" }}
       up={{ label: "LOVED", icon: "★" }}
@@ -35,6 +37,7 @@ export function AuditDeck({
       onRight={() => {
         /* keep: no state change, just advance past it */
       }}
+      onUndo={onUndo}
       renderCard={(s, isTop) => (
         <SavedCard item={s} isTop={isTop} onOpenTrailer={onOpenTrailer} />
       )}
