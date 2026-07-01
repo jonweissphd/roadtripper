@@ -12,6 +12,17 @@ export interface Favorite {
   addedAt: number;
 }
 
+/** A title saved to the watchlist via a right-swipe. Lighter than a Favorite:
+ *  it's a "want to watch" marker, not a taste seed that drives recommendations. */
+export interface SavedItem {
+  id: number;
+  mediaType: MediaType;
+  title: string;
+  year: string | null;
+  posterPath: string | null;
+  addedAt: number;
+}
+
 /** A streaming provider the user can toggle on/off. */
 export interface Platform {
   /** TMDb/JustWatch provider id. */

@@ -10,12 +10,16 @@ export function Recommendations({
   note,
   onHide,
   onAddFavorite,
+  onSave,
+  onOpenTrailer,
 }: {
   items: Recommendation[];
   loading: boolean;
   note?: string;
   onHide: (mediaType: MediaType, id: number) => void;
   onAddFavorite: (r: Recommendation) => void;
+  onSave: (r: Recommendation) => void;
+  onOpenTrailer: (r: Recommendation) => void;
 }) {
   return (
     <div>
@@ -91,13 +95,30 @@ export function Recommendations({
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => onAddFavorite(r)}
-                  className="mt-auto rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition hover:border-neutral-500 hover:text-white"
-                >
-                  + Add to my taste list
-                </button>
+                <div className="mt-auto flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onSave(r)}
+                    className="flex-1 rounded-md border border-emerald-500/40 px-2 py-1 text-xs text-emerald-300 transition hover:bg-emerald-500/10"
+                  >
+                    🔖 Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenTrailer(r)}
+                    className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                  >
+                    ▶ Trailer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onAddFavorite(r)}
+                    title="Add to taste list (a strong signal that shapes recs)"
+                    className="rounded-md border border-neutral-700 px-2 py-1 text-xs text-neutral-300 transition hover:border-neutral-500 hover:text-white"
+                  >
+                    ★ Taste
+                  </button>
+                </div>
               </div>
             </div>
           );

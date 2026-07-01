@@ -8,14 +8,17 @@ import {
   MediaType,
   Recommendation,
   RecommendResponse,
+  SavedItem,
   SearchResult,
 } from "@/lib/types";
 import { PlatformToggles } from "@/components/PlatformToggles";
 import { AddTitleSearch } from "@/components/AddTitleSearch";
 import { TasteList } from "@/components/TasteList";
+import { SavedList } from "@/components/SavedList";
 import { Recommendations } from "@/components/Recommendations";
 import { RegionSelect } from "@/components/RegionSelect";
 import { SwipeDeck } from "@/components/SwipeDeck";
+import { TrailerModal, TrailerTarget } from "@/components/TrailerModal";
 
 // Sensible first-run defaults so the app isn't empty on arrival.
 const DEFAULT_PLATFORMS = [8, 15, 337, 1899, 9]; // Netflix, Hulu, Disney+, Max, Prime
@@ -30,6 +33,10 @@ export default function Home() {
     DEFAULT_PLATFORMS,
   );
   const [hidden, setHidden] = useLocalStore<string[]>("sr:hidden", []);
+  const [watchlist, setWatchlist] = useLocalStore<SavedItem[]>(
+    "sr:watchlist",
+    [],
+  );
   const [region, setRegion, regionHydrated] = useLocalStore<string>(
     "sr:region",
     "US",
@@ -39,6 +46,7 @@ export default function Home() {
   const [note, setNote] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [view, setView] = useLocalStore<"swipe" | "grid">("sr:view", "swipe");
+  const [trailer, setTrailer] = useState<TrailerTarget | null>(null);
 
   const hydrated = favHydrated && platHydrated && regionHydrated;
 
@@ -105,6 +113,41 @@ export default function Home() {
     [setHidden],
   );
 
+  const saveToWatchlist = useCallback(
+    (r: Recommendation | SearchResult) => {
+      setWatchlist((prev) => {
+        if (prev.some((s) => s.id === r.id && s.mediaType === r.mediaType)) {
+          return prev;
+        }
+        const item: SavedItem = {
+          id: r.id,
+          mediaType: r.mediaType,
+          title: r.title,
+          year: r.year,
+          posterPath: r.posterPath,
+          addedAt: Date.now(),
+        };
+        return [...prev, item];
+      });
+    },
+    [setWatchlist],
+  );
+
+  const removeFromWatchlist = useCallback(
+    (mediaType: MediaType, id: number) => {
+      setWatchlist((prev) =>
+        prev.filter((s) => !(s.id === id && s.mediaType === mediaType)),
+      );
+    },
+    [setWatchlist],
+  );
+
+  const openTrailer = useCallback(
+    (t: { mediaType: MediaType; id: number; title: string }) =>
+      setTrailer({ mediaType: t.mediaType, id: t.id, title: t.title }),
+    [],
+  );
+
   const isAdded = useCallback(
     (mediaType: MediaType, id: number) =>
       favorites.some((f) => f.id === id && f.mediaType === mediaType),
@@ -143,7 +186,14 @@ export default function Home() {
               superLike: f.superLike,
             })),
             platforms,
-            hidden,
+            // Exclude both dismissed titles and anything already saved to the
+            // watchlist so the deck never re-shows them.
+            hidden: Array.from(
+              new Set([
+                ...hidden,
+                ...watchlist.map((s) => favKey(s.mediaType, s.id)),
+              ]),
+            ),
             region,
           }),
         });
@@ -168,7 +218,7 @@ export default function Home() {
       clearTimeout(t);
       ctrl.abort();
     };
-  }, [favorites, platforms, hidden, region, hydrated]);
+  }, [favorites, platforms, hidden, watchlist, region, hydrated]);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8">
@@ -201,6 +251,12 @@ export default function Home() {
               />
             </div>
           </div>
+
+          <SavedList
+            items={watchlist}
+            onRemove={removeFromWatchlist}
+            onOpenTrailer={openTrailer}
+          />
         </aside>
 
         <section>
@@ -230,9 +286,11 @@ export default function Home() {
               items={recs}
               loading={loading}
               note={note}
-              onLike={(r) => addFavorite(r, false)}
+              disabled={trailer !== null}
+              onSave={saveToWatchlist}
               onSuperLike={(r) => addFavorite(r, true)}
               onNope={hide}
+              onOpenTrailer={openTrailer}
             />
           ) : (
             <Recommendations
@@ -241,10 +299,14 @@ export default function Home() {
               note={note}
               onHide={hide}
               onAddFavorite={(r) => addFavorite(r)}
+              onSave={saveToWatchlist}
+              onOpenTrailer={openTrailer}
             />
           )}
         </section>
       </div>
+
+      <TrailerModal target={trailer} onClose={() => setTrailer(null)} />
 
       <footer className="mt-12 border-t border-neutral-900 pt-4 text-xs text-neutral-600">
         Streaming availability data by JustWatch via TMDb. This product uses the

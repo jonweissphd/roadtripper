@@ -5,7 +5,7 @@ import type { MediaType, Recommendation } from "@/lib/types";
 import { platformName } from "@/lib/platforms";
 import { posterUrl } from "@/lib/img";
 
-type Dir = "like" | "nope" | "super";
+type Dir = "save" | "nope" | "super";
 
 // Past this horizontal/vertical drag (px) a release commits the swipe.
 const THRESHOLD = 110;
@@ -20,16 +20,21 @@ export function SwipeDeck({
   items,
   loading,
   note,
-  onLike,
+  disabled = false,
+  onSave,
   onSuperLike,
   onNope,
+  onOpenTrailer,
 }: {
   items: Recommendation[];
   loading: boolean;
   note?: string;
-  onLike: (r: Recommendation) => void;
+  /** When true (e.g. a modal is open), ignore swipe/keyboard input. */
+  disabled?: boolean;
+  onSave: (r: Recommendation) => void;
   onSuperLike: (r: Recommendation) => void;
   onNope: (mediaType: MediaType, id: number) => void;
+  onOpenTrailer: (r: Recommendation) => void;
 }) {
   const [queue, setQueue] = useState<Recommendation[]>([]);
   const acted = useRef<Set<string>>(new Set());
@@ -56,7 +61,7 @@ export function SwipeDeck({
     (dir: Dir) => {
       if (!top || leaving) return;
       const target =
-        dir === "like"
+        dir === "save"
           ? { x: 1100, y: 40 }
           : dir === "nope"
             ? { x: -1100, y: 40 }
@@ -65,7 +70,7 @@ export function SwipeDeck({
       const card = top;
       acted.current.add(keyOf(card));
       window.setTimeout(() => {
-        if (dir === "like") onLike(card);
+        if (dir === "save") onSave(card);
         else if (dir === "super") onSuperLike(card);
         else onNope(card.mediaType, card.id);
         setQueue((prev) => prev.slice(1));
@@ -73,22 +78,23 @@ export function SwipeDeck({
         setDrag({ x: 0, y: 0, active: false });
       }, FLY_MS);
     },
-    [top, leaving, onLike, onSuperLike, onNope],
+    [top, leaving, onSave, onSuperLike, onNope],
   );
 
-  // Keyboard: ← nope, → like, ↑ super-like.
+  // Keyboard: ← nope, → save, ↑ super-like.
   useEffect(() => {
+    if (disabled) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "ArrowLeft") commit("nope");
-      else if (e.key === "ArrowRight") commit("like");
+      else if (e.key === "ArrowRight") commit("save");
       else if (e.key === "ArrowUp") commit("super");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [commit]);
+  }, [commit, disabled]);
 
   function onPointerDown(e: React.PointerEvent) {
-    if (leaving) return;
+    if (leaving || disabled) return;
     start.current = { x: e.clientX, y: e.clientY };
     setDrag({ x: 0, y: 0, active: true });
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -106,13 +112,12 @@ export function SwipeDeck({
     start.current = null;
     const { x, y } = drag;
     if (y < -THRESHOLD && Math.abs(x) < THRESHOLD * 1.2) commit("super");
-    else if (x > THRESHOLD) commit("like");
+    else if (x > THRESHOLD) commit("save");
     else if (x < -THRESHOLD) commit("nope");
     else setDrag({ x: 0, y: 0, active: false });
   }
 
-  // Overlay opacities from the current drag.
-  const likeOp = Math.max(0, Math.min(1, drag.x / THRESHOLD));
+  const saveOp = Math.max(0, Math.min(1, drag.x / THRESHOLD));
   const nopeOp = Math.max(0, Math.min(1, -drag.x / THRESHOLD));
   const superOp = Math.max(0, Math.min(1, -drag.y / THRESHOLD));
 
@@ -136,7 +141,7 @@ export function SwipeDeck({
           <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-neutral-800 px-6 text-center text-sm text-neutral-500">
             {loading
               ? "Finding picks…"
-              : "You're all caught up. Add more favorites (or hit undo) for more."}
+              : "You're all caught up. Add more favorites for more picks."}
           </div>
         )}
 
@@ -181,7 +186,17 @@ export function SwipeDeck({
                   </div>
                 )}
 
-                {/* gradient + info */}
+                {isTop && (
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => onOpenTrailer(rec)}
+                    className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur hover:bg-black/80"
+                  >
+                    ▶ Trailer
+                  </button>
+                )}
+
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4">
                   <div className="text-lg font-semibold leading-tight">
                     {rec.title}
@@ -207,13 +222,12 @@ export function SwipeDeck({
                   )}
                 </div>
 
-                {/* swipe overlays (top card only) */}
                 {isTop && (
                   <>
                     <Overlay
-                      label="LIKE"
+                      label="SAVE"
                       className="left-4 top-4 -rotate-12 border-emerald-400 text-emerald-400"
-                      opacity={likeOp}
+                      opacity={saveOp}
                     />
                     <Overlay
                       label="NOPE"
@@ -233,11 +247,10 @@ export function SwipeDeck({
           .reverse()}
       </div>
 
-      {/* action buttons — the accessible path, and a mouse-free alternative */}
       <div className="mt-6 flex items-center justify-center gap-4">
         <DeckButton
           onClick={() => commit("nope")}
-          disabled={empty || !!leaving}
+          disabled={empty || !!leaving || disabled}
           title="Not interested (←)"
           className="border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
         >
@@ -245,23 +258,23 @@ export function SwipeDeck({
         </DeckButton>
         <DeckButton
           onClick={() => commit("super")}
-          disabled={empty || !!leaving}
-          title="Super-like (↑)"
+          disabled={empty || !!leaving || disabled}
+          title="Super-like — add to taste list (↑)"
           className="border-sky-500/40 text-sky-400 hover:bg-sky-500/10"
         >
           ★
         </DeckButton>
         <DeckButton
-          onClick={() => commit("like")}
-          disabled={empty || !!leaving}
-          title="Add to taste list (→)"
+          onClick={() => commit("save")}
+          disabled={empty || !!leaving || disabled}
+          title="Save to watchlist (→)"
           className="border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
         >
-          ♥
+          🔖
         </DeckButton>
       </div>
       <p className="mt-3 text-center text-xs text-neutral-600">
-        Swipe or use ← ✕ nope · ↑ ★ super-like · → ♥ add
+        ← ✕ nope · ↑ ★ super-like · → 🔖 save
       </p>
     </div>
   );

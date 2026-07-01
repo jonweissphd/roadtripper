@@ -254,6 +254,33 @@ export async function titleDetails(
   }
 }
 
+/** Best YouTube trailer key for a title, or null if none. */
+export async function trailerKey(
+  mediaType: MediaType,
+  id: number,
+): Promise<string | null> {
+  const url = withKey(`/${mediaType}/${id}/videos`, { language: "en-US" });
+  try {
+    const data = await getJSON<{
+      results: Array<{
+        key: string;
+        site: string;
+        type: string;
+        official?: boolean;
+      }>;
+    }>(url, DAY);
+    const yt = data.results.filter((v) => v.site === "YouTube");
+    const pick =
+      yt.find((v) => v.type === "Trailer" && v.official) ??
+      yt.find((v) => v.type === "Trailer") ??
+      yt.find((v) => v.type === "Teaser") ??
+      yt[0];
+    return pick?.key ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Discover titles filtered to a specific affinity signal (a person or a keyword)
  * AND to titles streaming on the given providers in the region. Because the
