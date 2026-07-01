@@ -18,6 +18,7 @@ import { SavedList } from "@/components/SavedList";
 import { Recommendations } from "@/components/Recommendations";
 import { RegionSelect } from "@/components/RegionSelect";
 import { SwipeDeck } from "@/components/SwipeDeck";
+import { AuditDeck } from "@/components/AuditDeck";
 import { TrailerModal, TrailerTarget } from "@/components/TrailerModal";
 
 // Sensible first-run defaults so the app isn't empty on arrival.
@@ -45,14 +46,17 @@ export default function Home() {
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [note, setNote] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useLocalStore<"swipe" | "grid">("sr:view", "swipe");
+  const [view, setView] = useLocalStore<"swipe" | "grid" | "audit">(
+    "sr:view",
+    "swipe",
+  );
   const [trailer, setTrailer] = useState<TrailerTarget | null>(null);
 
   const hydrated = favHydrated && platHydrated && regionHydrated;
 
   // --- taste list mutations ------------------------------------------------
   const addFavorite = useCallback(
-    (r: SearchResult | Recommendation, superLike = false) => {
+    (r: SearchResult | Recommendation | SavedItem, superLike = false) => {
       setFavorites((prev) => {
         if (prev.some((f) => f.id === r.id && f.mediaType === r.mediaType)) {
           return prev;
@@ -140,6 +144,16 @@ export default function Home() {
       );
     },
     [setWatchlist],
+  );
+
+  // Audit action: "watched & loved it" — promote to taste (super-like) and clear
+  // it out of the watchlist.
+  const lovedFromWatchlist = useCallback(
+    (s: SavedItem) => {
+      addFavorite(s, true);
+      removeFromWatchlist(s.mediaType, s.id);
+    },
+    [addFavorite, removeFromWatchlist],
   );
 
   const openTrailer = useCallback(
@@ -262,7 +276,7 @@ export default function Home() {
         <section>
           <div className="mb-4 flex justify-end">
             <div className="inline-flex rounded-lg border border-neutral-800 p-0.5 text-sm">
-              {(["swipe", "grid"] as const).map((v) => (
+              {(["swipe", "grid", "audit"] as const).map((v) => (
                 <button
                   key={v}
                   type="button"
@@ -281,7 +295,7 @@ export default function Home() {
             </div>
           </div>
 
-          {view === "swipe" ? (
+          {view === "swipe" && (
             <SwipeDeck
               items={recs}
               loading={loading}
@@ -292,7 +306,8 @@ export default function Home() {
               onNope={hide}
               onOpenTrailer={openTrailer}
             />
-          ) : (
+          )}
+          {view === "grid" && (
             <Recommendations
               items={recs}
               loading={loading}
@@ -300,6 +315,15 @@ export default function Home() {
               onHide={hide}
               onAddFavorite={(r) => addFavorite(r)}
               onSave={saveToWatchlist}
+              onOpenTrailer={openTrailer}
+            />
+          )}
+          {view === "audit" && (
+            <AuditDeck
+              items={watchlist}
+              disabled={trailer !== null}
+              onRemove={removeFromWatchlist}
+              onLoved={lovedFromWatchlist}
               onOpenTrailer={openTrailer}
             />
           )}

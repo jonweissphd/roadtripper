@@ -7,10 +7,20 @@ list** — not by connecting any streaming accounts.
   *really* loved with a **super-like** (weighted much higher).
 - **Toggle your services.** Flip on the platforms you actually pay for
   (Netflix, Hulu, Disney+, Max, Prime Video, Apple TV+, Peacock, Paramount+, …).
-- **Swipe through picks (Tinder-style).** Swipe right (♥) to add a pick to your
-  taste list, left (✕) to dismiss, up (★) to super-like — with mouse, touch,
-  the on-screen buttons, or ← ↑ → keys. Every swipe feeds the engine, so the
-  deck keeps sharpening. Prefer a bird's-eye view? Toggle to **Grid**.
+- **Swipe through picks (Tinder-style).** Swipe right (🔖) to save a pick to your
+  watchlist, left (✕) to dismiss, up (★) to super-like into your taste — with
+  mouse, touch, the on-screen buttons, or ← ↑ → keys. Every swipe feeds the
+  engine, so the deck keeps sharpening. Prefer a bird's-eye view? Toggle to
+  **Grid**.
+- **Audit your watchlist.** The **Audit** view is a second swipe deck over your
+  saved titles: ← removes, → keeps, ↑ ("loved it") promotes the title into your
+  taste list and clears it from the watchlist. (Both decks share one generic
+  `SwipeStack`.)
+- **Save vs. taste, kept separate.** A right-swipe *saves* (a "want to watch"
+  marker); it doesn't pollute the taste seeds that drive recommendations. Saved
+  and dismissed titles are excluded from future picks.
+- **Trailers.** Every card has a ▶ Trailer button that plays the YouTube trailer
+  in a lightbox (fetched on demand).
 - **Get living recommendations.** Picks are generated from your favorites and
   **filtered to only titles you can stream on your services**, each card showing
   which of *your* platforms has it and *why* it was picked. Change your taste
@@ -77,15 +87,21 @@ Your TMDb credential lives only on the server; the browser talks to local
 ```
 app/
   page.tsx                 # the whole client app (taste list, toggles, results)
-  api/tmdb/search/route.ts # title search proxy
+  api/tmdb/search/route.ts    # title search proxy
   api/tmdb/recommend/route.ts # scoring + availability filtering
+  api/tmdb/video/route.ts     # trailer lookup
 lib/
   tmdb.ts        # server-only TMDb client (+ in-memory cache)
-  recommend.ts   # candidate gathering, scoring, platform filtering
+  recommend.ts   # candidate gathering, affinity, scoring, platform filtering
   platforms.ts   # the toggleable services (TMDb provider ids)
   types.ts       # shared types
   useLocalStore.ts # localStorage-backed state
-components/       # PlatformToggles, AddTitleSearch, TasteList, Recommendations
+components/
+  SwipeStack.tsx   # generic swipe mechanics (drag/keys/buttons/overlays)
+  SwipeDeck.tsx    # recommendations deck (wraps SwipeStack)
+  AuditDeck.tsx    # watchlist audit deck (wraps SwipeStack)
+  TrailerModal.tsx, Recommendations.tsx (grid), PlatformToggles.tsx,
+  RegionSelect.tsx, AddTitleSearch.tsx, TasteList.tsx, SavedList.tsx
 ```
 
 ## Possible next steps
@@ -93,6 +109,7 @@ components/       # PlatformToggles, AddTitleSearch, TasteList, Recommendations
 - **Deep links** ("Play on Netflix" buttons): TMDb can't provide these (JustWatch
   agreement), but a small-quota API like Watchmode or the Streaming Availability
   API can be layered in *on-demand per click* to add them cheaply.
-- Optional cloud sync of your taste list across devices.
+- **Undo last swipe** on either deck.
+- Optional cloud sync of your taste list and watchlist across devices.
 - Region-specific provider maps for fully accurate non-US availability.
 - "Hide" list management UI and a "surprise me" wildcard.
