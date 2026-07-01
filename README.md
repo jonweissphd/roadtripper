@@ -7,6 +7,10 @@ list** — not by connecting any streaming accounts.
   *really* loved with a **super-like** (weighted much higher).
 - **Toggle your services.** Flip on the platforms you actually pay for
   (Netflix, Hulu, Disney+, Max, Prime Video, Apple TV+, Peacock, Paramount+, …).
+- **Swipe through picks (Tinder-style).** Swipe right (♥) to add a pick to your
+  taste list, left (✕) to dismiss, up (★) to super-like — with mouse, touch,
+  the on-screen buttons, or ← ↑ → keys. Every swipe feeds the engine, so the
+  deck keeps sharpening. Prefer a bird's-eye view? Toggle to **Grid**.
 - **Get living recommendations.** Picks are generated from your favorites and
   **filtered to only titles you can stream on your services**, each card showing
   which of *your* platforms has it and *why* it was picked. Change your taste

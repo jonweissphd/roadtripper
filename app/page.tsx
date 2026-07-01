@@ -15,6 +15,7 @@ import { AddTitleSearch } from "@/components/AddTitleSearch";
 import { TasteList } from "@/components/TasteList";
 import { Recommendations } from "@/components/Recommendations";
 import { RegionSelect } from "@/components/RegionSelect";
+import { SwipeDeck } from "@/components/SwipeDeck";
 
 // Sensible first-run defaults so the app isn't empty on arrival.
 const DEFAULT_PLATFORMS = [8, 15, 337, 1899, 9]; // Netflix, Hulu, Disney+, Max, Prime
@@ -37,6 +38,7 @@ export default function Home() {
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [note, setNote] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [view, setView] = useLocalStore<"swipe" | "grid">("sr:view", "swipe");
 
   const hydrated = favHydrated && platHydrated && regionHydrated;
 
@@ -202,13 +204,45 @@ export default function Home() {
         </aside>
 
         <section>
-          <Recommendations
-            items={recs}
-            loading={loading}
-            note={note}
-            onHide={hide}
-            onAddFavorite={(r) => addFavorite(r)}
-          />
+          <div className="mb-4 flex justify-end">
+            <div className="inline-flex rounded-lg border border-neutral-800 p-0.5 text-sm">
+              {(["swipe", "grid"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  className={
+                    "rounded-md px-3 py-1 capitalize transition " +
+                    (view === v
+                      ? "bg-neutral-800 text-white"
+                      : "text-neutral-400 hover:text-neutral-200")
+                  }
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {view === "swipe" ? (
+            <SwipeDeck
+              items={recs}
+              loading={loading}
+              note={note}
+              onLike={(r) => addFavorite(r, false)}
+              onSuperLike={(r) => addFavorite(r, true)}
+              onNope={hide}
+            />
+          ) : (
+            <Recommendations
+              items={recs}
+              loading={loading}
+              note={note}
+              onHide={hide}
+              onAddFavorite={(r) => addFavorite(r)}
+            />
+          )}
         </section>
       </div>
 
