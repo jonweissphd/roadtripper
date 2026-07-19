@@ -1,4 +1,4 @@
-# Streaming Recs
+# Shuffleflix
 
 Personal, cross-platform streaming recommendations driven by **your own taste
 list** — not by connecting any streaming accounts.

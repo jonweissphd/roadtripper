@@ -1,5 +1,5 @@
 {
-  "name": "streaming-recs",
+  "name": "shuffleflix",
   "version": "0.1.0",
   "private": true,
   "description": "Personal cross-platform streaming recommendations. Build a taste list of favorite movies/shows (with super-likes), toggle the services you subscribe to, and get recommendations filtered to what you can actually stream.",

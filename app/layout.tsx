@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Streaming Recs",
+  title: "Shuffleflix",
   description:
     "Personal cross-platform streaming recommendations from your own taste list.",
 };
