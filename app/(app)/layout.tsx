@@ -11,7 +11,7 @@ export default async function AppLayout({
 }) {
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   return (
     <div className="flex flex-1 flex-col">

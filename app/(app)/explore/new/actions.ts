@@ -35,7 +35,7 @@ export async function createExplore(formData: FormData) {
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   const { count } = await supabase
     .from("profile_interests")

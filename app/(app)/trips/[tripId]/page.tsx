@@ -27,7 +27,7 @@ export default async function TripDetailPage({
   const { tripId } = await params;
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   const { data: trip, error: tripError } = await supabase
     .from("trips")

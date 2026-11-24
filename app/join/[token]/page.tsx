@@ -82,10 +82,10 @@ export default async function JoinPage({
           </p>
         </div>
         <Link
-          href={user ? "/profile" : "/login"}
+          href={user ? "/profile" : "/"}
           className={buttonVariants({ variant: "outline", className: "mt-8" })}
         >
-          {user ? "Back to your profile" : "Log in"}
+          {user ? "Back to your profile" : "Back home"}
         </Link>
       </main>
     );
@@ -141,31 +141,13 @@ export default async function JoinPage({
           </Button>
         </form>
       ) : (
-        <div className="mt-7 space-y-3">
-          <p className="text-center text-sm text-muted-foreground">
-            Sign up or log in to accept.
-          </p>
-          <div className="flex gap-2">
-            <Link
-              href={`/signup?next=${encodeURIComponent(`/join/${token}`)}`}
-              className={buttonVariants({
-                size: "lg",
-                className: "flex-1",
-              })}
-            >
-              Sign up
-            </Link>
-            <Link
-              href={`/login?next=${encodeURIComponent(`/join/${token}`)}`}
-              className={buttonVariants({
-                size: "lg",
-                variant: "outline",
-                className: "flex-1",
-              })}
-            >
-              Log in
-            </Link>
-          </div>
+        <div className="mt-7">
+          <Link
+            href={`/auth/guest?next=${encodeURIComponent(`/join/${token}`)}`}
+            className={buttonVariants({ size: "lg", className: "w-full" })}
+          >
+            Accept invite
+          </Link>
         </div>
       )}
     </main>

@@ -1,86 +1,12 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Eyebrow } from "@/components/ui/eyebrow";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signIn, signInAsGuest } from "../actions";
+import { redirect } from "next/navigation";
 
+// V1 is guest-only — there are no accounts to log into. Anyone landing here
+// (old bookmark, stale link) is sent to the guest entry.
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string }>;
 }) {
-  const { next, error } = await searchParams;
-  const signupHref = next
-    ? `/signup?next=${encodeURIComponent(next)}`
-    : "/signup";
-
-  return (
-    <div className="space-y-8">
-      <div className="space-y-2 text-center">
-        <Eyebrow>Welcome back</Eyebrow>
-        <h1 className="text-2xl font-semibold tracking-tight">Log in</h1>
-      </div>
-
-      <form action={signIn} className="space-y-5">
-        {next && <input type="hidden" name="next" value={next} />}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-          />
-        </div>
-        {error && (
-          <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="lg" className="w-full">
-          Log in
-        </Button>
-      </form>
-
-      <div className="relative flex items-center gap-4">
-        <div className="h-px flex-1 bg-border" />
-        <span className="text-xs font-medium text-muted-foreground">or</span>
-        <div className="h-px flex-1 bg-border" />
-      </div>
-
-      <form action={signInAsGuest}>
-        {next && <input type="hidden" name="next" value={next} />}
-        <Button
-          type="submit"
-          variant="outline"
-          size="lg"
-          className="w-full"
-        >
-          Continue as guest
-        </Button>
-      </form>
-
-      <p className="text-center text-sm text-muted-foreground">
-        New here?{" "}
-        <Link
-          href={signupHref}
-          className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground"
-        >
-          Create an account
-        </Link>
-      </p>
-    </div>
-  );
+  const { next } = await searchParams;
+  redirect(next ? `/auth/guest?next=${encodeURIComponent(next)}` : "/auth/guest");
 }

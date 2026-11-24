@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { signInAsGuest } from "@/app/(auth)/actions";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -20,35 +19,17 @@ export default function Home() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href="/signup"
+            href="/auth/guest"
             className={buttonVariants({
               size: "lg",
               className: "text-[0.9375rem] sm:px-8",
             })}
           >
-            Get started
-          </Link>
-          <Link
-            href="/login"
-            className={buttonVariants({
-              size: "lg",
-              variant: "outline",
-              className: "text-[0.9375rem] sm:px-8",
-            })}
-          >
-            I have an account
+            Start exploring
           </Link>
         </div>
-        <form action={signInAsGuest}>
-          <button
-            type="submit"
-            className="text-sm font-medium text-muted-foreground underline decoration-muted-foreground/30 underline-offset-4 transition-colors hover:text-foreground hover:decoration-foreground/50"
-          >
-            Continue as guest
-          </button>
-        </form>
         <p className="text-sm text-muted-foreground/70">
-          Free to use. No credit card needed.
+          Free to use. No account, no sign-up.
         </p>
       </div>
     </main>

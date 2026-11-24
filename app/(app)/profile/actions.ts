@@ -19,7 +19,7 @@ export async function saveProfile(formData: FormData) {
 
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   const { error: profileError } = await supabase
     .from("profiles")

@@ -13,7 +13,7 @@ export async function acceptInvite(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(`/join/${token}`)}`);
+    redirect(`/auth/guest?next=${encodeURIComponent(`/join/${token}`)}`);
   }
 
   const admin = createAdminClient();

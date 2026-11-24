@@ -36,7 +36,7 @@ export default async function ProfilePage({
   const { error, saved } = await searchParams;
   const supabase = await createClient();
   const user = await getCurrentUser(supabase);
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   const [profileRes, interestsRes, selectionsRes] = await Promise.all([
     supabase

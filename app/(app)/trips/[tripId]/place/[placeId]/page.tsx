@@ -17,7 +17,7 @@ export default async function PlaceDetailPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/guest");
 
   const { data: match } = await supabase
     .from("trip_matches")
